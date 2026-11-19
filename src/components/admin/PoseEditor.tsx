@@ -9,11 +9,20 @@ import {
   updatePose,
   validateImageFile,
 } from '@/lib/admin/api';
-import { STATUS_LABEL, type ContentStatus, type Pose, type PoseMetaInput } from '@/lib/admin/types';
+import {
+  STATUS_LABEL,
+  type ContentStatus,
+  type Line,
+  type Pose,
+  type PoseMetaInput,
+  type Situation,
+} from '@/lib/admin/types';
 import {
   Field,
   Modal,
   PoseImage,
+  RenderedLine,
+  StatusBadge,
   dangerButton,
   inputClass,
   primaryButton,
@@ -23,7 +32,10 @@ import {
 interface PoseEditorProps {
   /** null = 새 포즈 업로드 */
   pose: Pose | null;
-  linkedLineCount: number;
+  linkedLines: Line[];
+  situationByKey: Map<string, Situation>;
+  /** 기존 앱이 쓰는 이미지 경로: 포즈를 지워도 파일은 남김 */
+  legacyPaths: Set<string>;
   onClose: () => void;
   onSaved: () => Promise<void>;
   onAddLine: (pose: Pose) => void;
@@ -31,8 +43,17 @@ interface PoseEditorProps {
 
 const POSE_KEY_PATTERN = /^[a-z0-9_]+$/;
 
-export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, onAddLine }: PoseEditorProps) {
+export default function PoseEditor({
+  pose,
+  linkedLines,
+  situationByKey,
+  legacyPaths,
+  onClose,
+  onSaved,
+  onAddLine,
+}: PoseEditorProps) {
   const isNew = pose === null;
+  const linkedLineCount = linkedLines.length;
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -116,11 +137,15 @@ export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, on
 
   const handleDelete = async () => {
     if (!pose) return;
-    if (!window.confirm(`포즈 "${pose.pose_key}"와 이미지 파일을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    const usedByLegacy = legacyPaths.has(pose.storage_path);
+    const message = usedByLegacy
+      ? `포즈 "${pose.pose_key}"를 삭제할까요?\n이미지 파일은 현재 앱이 쓰고 있어서 지우지 않고 남겨둡니다.`
+      : `포즈 "${pose.pose_key}"와 이미지 파일을 삭제할까요? 되돌릴 수 없습니다.`;
+    if (!window.confirm(message)) return;
     setSaving(true);
     try {
-      const { fileRemoved } = await deletePose(pose);
-      if (!fileRemoved) {
+      const { file } = await deletePose(pose, legacyPaths);
+      if (file === 'remove_failed') {
         window.alert(
           `포즈는 삭제됐지만 이미지 파일(${pose.storage_path})은 남아 있습니다.\n` +
             'Storage 조회 권한 SQL(20261119_character_cards_storage_select.sql)을 실행했는지 확인하세요.'
@@ -139,11 +164,11 @@ export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, on
     <Modal title={isNew ? '포즈 올리기' : `포즈 · ${pose.pose_key}`} onClose={onClose} wide>
       <div className="grid gap-6 md:grid-cols-[240px_1fr]">
         <div>
-          <div className="flex aspect-square items-center justify-center rounded-xl border border-gray-200 bg-[repeating-conic-gradient(#f3f4f6_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
+          <div className="flex aspect-square items-center justify-center rounded-xl border border-line bg-[repeating-conic-gradient(#eceef2_0_25%,#fff_0_50%)] bg-[length:16px_16px]">
             {imageSrc ? (
               <PoseImage src={imageSrc} alt="포즈" className="h-full w-full p-2" />
             ) : (
-              <span className="text-sm text-gray-400">이미지 없음</span>
+              <span className="text-sm text-ink-muted">이미지 없음</span>
             )}
           </div>
           {isNew ? (
@@ -157,11 +182,11 @@ export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, on
               />
             </label>
           ) : (
-            <p className="mt-3 text-xs text-gray-500">
+            <p className="mt-3 text-xs text-ink-muted">
               이미지를 바꾸려면 새 포즈로 올려주세요. 같은 이름으로 덮어쓰면 앱 캐시 때문에 옛 이미지가 보일 수 있습니다.
             </p>
           )}
-          <p className="mt-2 text-xs text-gray-400">투명 배경 webp 권장 · 5MB 이하</p>
+          <p className="mt-2 text-xs text-ink-muted">투명 배경 webp 권장 · 5MB 이하</p>
         </div>
 
         <div className="space-y-4">
@@ -170,11 +195,11 @@ export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, on
               value={poseKey}
               onChange={(e) => setPoseKey(e.target.value)}
               disabled={!isNew}
-              className={`${inputClass} font-mono disabled:bg-gray-50 disabled:text-gray-500`}
+              className={`${inputClass} font-mono disabled:bg-paper disabled:text-ink-muted`}
             />
           </Field>
           {isNew && poseKey && !keyValid && (
-            <p className="-mt-2 text-sm text-red-600">영문 소문자, 숫자, _만 쓸 수 있습니다.</p>
+            <p className="-mt-2 text-sm text-alarm">영문 소문자, 숫자, _만 쓸 수 있습니다.</p>
           )}
 
           <div className="grid grid-cols-2 gap-3">
@@ -234,11 +259,35 @@ export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, on
             </Field>
           </div>
 
-          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          {error && <p className="rounded-lg bg-alarm-pale p-3 text-sm text-alarm">{error}</p>}
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4">
+      {pose && (
+        <div className="mt-6 border-t border-line pt-4">
+          <h3 className="mb-2 text-sm font-semibold">이 포즈를 쓰는 멘트 {linkedLines.length}개</h3>
+          {linkedLines.length === 0 ? (
+            <p className="text-sm text-ink-muted">아직 연결된 멘트가 없어요.</p>
+          ) : (
+            <ul className="max-h-48 space-y-1.5 overflow-y-auto">
+              {linkedLines.map((l) => (
+                <li key={l.id} className="flex items-center gap-3 rounded-lg bg-paper px-3 py-2 text-sm">
+                  <StatusBadge status={l.status} />
+                  <span className="min-w-0 flex-1 truncate">
+                    <RenderedLine text={l.line_text} />
+                  </span>
+                  <span className="shrink-0 text-xs text-ink-muted">
+                    {situationByKey.get(l.situation_key)?.label ?? l.situation_key}
+                    {l.locale !== 'ko' && ` (${l.locale})`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
         {pose ? (
           <div className="flex items-center gap-2">
             <button
@@ -250,7 +299,7 @@ export default function PoseEditor({ pose, linkedLineCount, onClose, onSaved, on
               삭제
             </button>
             {linkedLineCount > 0 && (
-              <span className="text-xs text-gray-400">멘트 {linkedLineCount}개 연결됨 · 삭제 대신 보관</span>
+              <span className="text-xs text-ink-muted">멘트 {linkedLineCount}개 연결됨 · 삭제 대신 보관</span>
             )}
           </div>
         ) : (

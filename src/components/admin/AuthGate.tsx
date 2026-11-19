@@ -61,20 +61,20 @@ export default function AuthGate({ children }: AuthGateProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-bold">지갑교관 콘텐츠 관리</h1>
-        <p className="mt-1 text-sm text-gray-500">관리자 전용 페이지입니다.</p>
+      <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-8 shadow-sm">
+        <h1 className="text-xl font-bold">지갑교관 스튜디오</h1>
+        <p className="mt-1 text-sm text-ink-muted">관리자 전용 페이지입니다.</p>
 
-        {state === 'loading' && <p className="mt-6 text-sm text-gray-500">확인 중…</p>}
+        {state === 'loading' && <p className="mt-6 text-sm text-ink-muted">확인 중…</p>}
 
         {state === 'notAdmin' && (
           <div className="mt-6 space-y-3">
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <p className="rounded-lg bg-alarm-pale p-3 text-sm text-alarm">
               이 계정은 관리자로 등록되어 있지 않습니다.
             </p>
             <button
               onClick={signOut}
-              className="w-full rounded-lg border border-gray-300 py-2.5 text-sm font-medium hover:bg-gray-50"
+              className="w-full rounded-lg border border-line py-2.5 text-sm font-medium hover:bg-paper"
             >
               로그아웃
             </button>
@@ -90,7 +90,7 @@ export default function AuthGate({ children }: AuthGateProps) {
               placeholder="이메일"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
+              className="w-full rounded-lg border border-line px-3 py-2.5 text-sm outline-none focus:border-mint-strong"
             />
             <input
               type="password"
@@ -99,13 +99,13 @@ export default function AuthGate({ children }: AuthGateProps) {
               placeholder="비밀번호"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
+              className="w-full rounded-lg border border-line px-3 py-2.5 text-sm outline-none focus:border-mint-strong"
             />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-alarm">{error}</p>}
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className="w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-white hover:bg-ink-soft disabled:opacity-50"
             >
               {submitting ? '로그인 중…' : '로그인'}
             </button>

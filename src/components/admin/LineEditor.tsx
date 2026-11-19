@@ -171,7 +171,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
               </select>
             </Field>
           </div>
-          {situation?.description && <p className="-mt-2 text-xs text-gray-500">{situation.description}</p>}
+          {situation?.description && <p className="-mt-2 text-xs text-ink-muted">{situation.description}</p>}
 
           <Field label="멘트" hint={`${form.line_text.length}/${MAX_LENGTH}`}>
             <textarea
@@ -184,25 +184,25 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             />
           </Field>
           <div className="-mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-gray-500">변수 넣기:</span>
+            <span className="text-xs text-ink-muted">변수 넣기:</span>
             {(situation?.available_vars ?? []).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => insertVar(v)}
-                className="rounded-md bg-emerald-50 px-2 py-0.5 font-mono text-xs text-emerald-800 hover:bg-emerald-100"
+                className="rounded-md bg-mint-pale px-2 py-0.5 font-mono text-xs text-mint-dark hover:bg-mint-faint"
               >
                 {`{${v}}`}
               </button>
             ))}
           </div>
           {invalidVars.length > 0 && (
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-alarm">
               이 상황에서 쓸 수 없는 변수: {invalidVars.map((v) => `{${v}}`).join(' ')}
             </p>
           )}
           {form.line_text.length > MAX_LENGTH && (
-            <p className="text-sm text-red-600">{MAX_LENGTH}자를 넘을 수 없습니다.</p>
+            <p className="text-sm text-alarm">{MAX_LENGTH}자를 넘을 수 없습니다.</p>
           )}
 
           <Field label="포즈" hint={selectedPose ? selectedPose.pose_key : '선택 필요'}>
@@ -212,27 +212,27 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
               onChange={(e) => setPoseFilter(e.target.value)}
               className={`${inputClass} mb-2`}
             />
-            <div className="grid max-h-52 grid-cols-4 gap-2 overflow-y-auto rounded-lg border border-gray-200 p-2 sm:grid-cols-6">
+            <div className="grid max-h-52 grid-cols-4 gap-2 overflow-y-auto rounded-lg border border-line p-2 sm:grid-cols-6">
               {filteredPoses.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => set('pose_id', p.id)}
                   title={`${p.pose_key}${p.status !== 'active' ? ` (${STATUS_LABEL[p.status]})` : ''}`}
-                  className={`relative aspect-square rounded-lg bg-gray-50 p-1 ${
-                    form.pose_id === p.id ? 'ring-2 ring-emerald-500' : 'hover:ring-1 hover:ring-gray-300'
+                  className={`relative aspect-square rounded-lg bg-paper p-1 ${
+                    form.pose_id === p.id ? 'ring-2 ring-mint-strong' : 'hover:ring-1 hover:ring-ink-muted'
                   }`}
                 >
                   <PoseImage src={assetUrl(p.storage_path)} alt={p.pose_key} className="h-full w-full" />
                   {p.status !== 'active' && (
-                    <span className="absolute left-1 top-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">
+                    <span className="absolute left-1 top-1 rounded bg-caution-pale px-1 text-[10px] text-caution">
                       {STATUS_LABEL[p.status]}
                     </span>
                   )}
                 </button>
               ))}
               {filteredPoses.length === 0 && (
-                <p className="col-span-full py-6 text-center text-xs text-gray-400">포즈가 없습니다</p>
+                <p className="col-span-full py-6 text-center text-xs text-ink-muted">포즈가 없습니다</p>
               )}
             </div>
           </Field>
@@ -263,7 +263,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             </Field>
           </div>
           {form.status === 'active' && selectedPose && selectedPose.status !== 'active' && (
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-caution">
               선택한 포즈가 &quot;{STATUS_LABEL[selectedPose.status]}&quot; 상태라 포즈를 공개하기 전까지 앱에 나오지 않습니다.
             </p>
           )}
@@ -276,7 +276,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             />
           </Field>
 
-          {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          {error && <p className="rounded-lg bg-alarm-pale p-3 text-sm text-alarm">{error}</p>}
         </div>
 
         <div className="md:pt-6">
@@ -287,7 +287,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+      <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
         {target.mode === 'edit' ? (
           <button onClick={handleDelete} disabled={saving} className={dangerButton}>
             삭제

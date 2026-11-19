@@ -5,6 +5,24 @@
   --foreground: #171717;
 }
 
+/* 관리자 페이지 토큰 (앱 디자인 시스템 src/theme/colors.ts 값과 동일) */
+@theme {
+  --color-ink: #171719;
+  --color-ink-soft: #46474c;
+  --color-ink-muted: #70737c;
+  --color-line: #dfe1e5;
+  --color-paper: #f7f7f8;
+  --color-mint: #81d8b8;
+  --color-mint-pale: #edfff8;
+  --color-mint-faint: #c2f7e3;
+  --color-mint-strong: #0bb475;
+  --color-mint-dark: #005646;
+  --color-caution: #eb7d00;
+  --color-caution-pale: #ffe6c5;
+  --color-alarm: #c42d2d;
+  --color-alarm-pale: #fde0e0;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -1,5 +1,14 @@
 import { getSupabase, getSupabaseUrl } from '@/lib/supabase';
-import type { Line, LineInput, Pose, PoseMetaInput, Situation } from './types';
+import type {
+  ContentStatus,
+  LegacyAsset,
+  LegacyMessage,
+  Line,
+  LineInput,
+  Pose,
+  PoseMetaInput,
+  Situation,
+} from './types';
 
 const BUCKET = 'assets';
 const POSE_FOLDER = 'characters';
@@ -41,6 +50,39 @@ export async function fetchAll(): Promise<{
   if (p.error) fail('포즈 조회 실패', p.error);
   if (l.error) fail('멘트 조회 실패', l.error);
   return { situations: s.data, poses: p.data, lines: l.data };
+}
+
+/** 현재 앱이 쓰는 기존 콘텐츠 (활성 항목만 조회됨: 기존 RLS 정책) */
+export async function fetchLegacy(): Promise<{ assets: LegacyAsset[]; messages: LegacyMessage[] }> {
+  const [a, m] = await Promise.all([
+    getSupabase()
+      .from('screen_assets')
+      .select('id, screen, state_id, asset_type, asset_key, storage_path, description')
+      .order('screen')
+      .order('state_id')
+      .order('asset_key'),
+    getSupabase()
+      .from('screen_messages')
+      .select('id, screen, state_id, message_text')
+      .order('screen')
+      .order('state_id')
+      .order('created_at'),
+  ]);
+  if (a.error) fail('기존 이미지 조회 실패', a.error);
+  if (m.error) fail('기존 멘트 조회 실패', m.error);
+  return { assets: a.data, messages: m.data };
+}
+
+// ---------- 빠른 상태 변경 ----------
+
+export async function setLineStatus(id: string, status: ContentStatus): Promise<void> {
+  const { error } = await getSupabase().from('character_lines').update({ status }).eq('id', id);
+  if (error) fail('상태 변경 실패', error);
+}
+
+export async function setPoseStatus(id: string, status: ContentStatus): Promise<void> {
+  const { error } = await getSupabase().from('character_poses').update({ status }).eq('id', id);
+  if (error) fail('상태 변경 실패', error);
 }
 
 // ---------- 멘트 ----------
@@ -115,13 +157,45 @@ export async function updatePose(id: string, meta: PoseMetaInput): Promise<void>
 }
 
 /**
- * 포즈 삭제 (연결된 멘트가 있으면 DB가 거부함)
- * @returns 이미지 파일까지 지워졌는지 여부
+ * 기존 앱 캐릭터 이미지를 포즈로 가져오기
+ * 파일은 복사하지 않고 같은 경로를 가리킴 (기존 이미지가 이미 characters/ 폴더에 있음)
  */
-export async function deletePose(pose: Pose): Promise<{ fileRemoved: boolean }> {
+export async function importLegacyAsPose(asset: LegacyAsset, existingKeys: Set<string>): Promise<string> {
+  if (!asset.storage_path.startsWith(`${POSE_FOLDER}/`)) {
+    throw new Error(`characters/ 폴더 밖의 이미지는 가져올 수 없습니다: ${asset.storage_path}`);
+  }
+  const base = suggestPoseKey(asset.storage_path.split('/').pop() ?? asset.asset_key) || 'legacy';
+  let poseKey = base;
+  for (let n = 2; existingKeys.has(poseKey); n++) poseKey = `${base}_${n}`;
+
+  const { error } = await getSupabase()
+    .from('character_poses')
+    .insert({
+      pose_key: poseKey,
+      storage_path: asset.storage_path,
+      tags: ['기존'],
+      description: asset.description,
+      ai_meta: { legacy_asset_id: asset.id },
+      status: 'draft',
+    });
+  if (error) fail('가져오기 실패', error);
+  return poseKey;
+}
+
+/**
+ * 포즈 삭제 (연결된 멘트가 있으면 DB가 거부함)
+ * 기존 앱이 쓰는 이미지 파일(legacyPaths)은 지우지 않고 남겨둠
+ * @returns 이미지 파일 처리 결과
+ */
+export async function deletePose(
+  pose: Pose,
+  legacyPaths: Set<string>
+): Promise<{ file: 'removed' | 'kept_for_legacy' | 'remove_failed' }> {
   const { error } = await getSupabase().from('character_poses').delete().eq('id', pose.id);
   if (error) fail('포즈 삭제 실패 (연결된 멘트가 있으면 삭제할 수 없음)', error);
 
+  if (legacyPaths.has(pose.storage_path)) return { file: 'kept_for_legacy' };
+
   const removed = await getSupabase().storage.from(BUCKET).remove([pose.storage_path]);
-  return { fileRemoved: !removed.error && (removed.data?.length ?? 0) > 0 };
+  return { file: !removed.error && (removed.data?.length ?? 0) > 0 ? 'removed' : 'remove_failed' };
 }
