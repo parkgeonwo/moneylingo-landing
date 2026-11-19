@@ -19,6 +19,7 @@ import {
   SpeechBubble,
   StatusBadge,
   StatusSwitch,
+  TextOnlyMark,
   filterClass,
   inputClass,
   primaryButton,
@@ -72,6 +73,7 @@ export default function ComposeView({
   const selectedLine = lines.find((l) => l.id === selectedLineId);
   const selectedPose = poses.find((p) => p.id === selectedPoseId);
   const currentPose = selectedLine ? derived.poseOf(selectedLine) : undefined;
+  const selectedTextOnly = !!selectedLine && derived.isTextOnly(selectedLine.situation_key);
   /** 미리보기에 쓸 이미지: 새로 고른 것 > 지금 묶여 있는 것 */
   const previewPose = selectedPose ?? currentPose;
 
@@ -82,10 +84,10 @@ export default function ComposeView({
         l.status !== 'archived' &&
         l.locale === locale &&
         (situationFilter === 'all' || l.situation_key === situationFilter) &&
-        (pairFilter === 'all' || (pairFilter === 'unpaired' ? !l.pose_id : !!l.pose_id)) &&
+        (pairFilter === 'all' || (pairFilter === 'unpaired') !== derived.isComplete(l)) &&
         (!q || l.line_text.includes(q) || l.note?.includes(q))
     );
-  }, [lines, locale, situationFilter, pairFilter, query]);
+  }, [lines, locale, situationFilter, pairFilter, query, derived]);
 
   const visiblePoses = useMemo(() => poses.filter((p) => p.status !== 'archived'), [poses]);
   const localeOptions = Array.from(new Set([...LOCALES, ...lines.map((l) => l.locale)]));
@@ -103,7 +105,12 @@ export default function ComposeView({
   const handleCreated = (line: Line) => {
     onLinesChanged((prev) => [line, ...prev]);
     setSelectedLineId(line.id);
-    setMessage({ tone: 'ok', text: '멘트를 추가했어요. 이제 이미지를 고르세요.' });
+    setMessage({
+      tone: 'ok',
+      text: derived.isTextOnly(line.situation_key)
+        ? '멘트를 추가했어요. 이미지 없이 바로 공개할 수 있어요.'
+        : '멘트를 추가했어요. 이제 이미지를 고르세요.',
+    });
   };
 
   const handleLink = async () => {
@@ -117,7 +124,7 @@ export default function ComposeView({
         prev.map((l) => (l.id === selectedLine.id ? { ...l, pose_id: selectedPose.id } : l))
       );
       // 이미지 없는 멘트를 연달아 묶을 수 있게 다음 멘트를 자동 선택
-      const next = visibleLines.find((l) => !l.pose_id && l.id !== selectedLine.id);
+      const next = visibleLines.find((l) => !derived.isComplete(l) && l.id !== selectedLine.id);
       setSelectedPoseId(null);
       if (wasUnpaired && next && pairFilter === 'unpaired') {
         setSelectedLineId(next.id);
@@ -134,6 +141,7 @@ export default function ComposeView({
 
   const action = (() => {
     if (!selectedLine) return { label: '멘트를 고르세요', enabled: false };
+    if (selectedTextOnly) return { label: '이미지 없이 쓰는 멘트예요', enabled: false };
     if (!selectedPose) return { label: '이미지를 고르세요', enabled: false };
     if (selectedLine.pose_id === selectedPose.id) return { label: '이미 묶인 카드예요', enabled: false };
     return { label: selectedLine.pose_id ? '이미지 바꾸기' : '카드로 묶기', enabled: true };
@@ -222,6 +230,7 @@ export default function ComposeView({
             <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-white ring-1 ring-line">
               {visibleLines.map((line) => {
                 const pose = derived.poseOf(line);
+                const textOnly = derived.isTextOnly(line.situation_key);
                 const selected = line.id === selectedLineId;
                 return (
                   <li key={line.id} className={selected ? 'bg-mint-pale' : ''}>
@@ -233,10 +242,12 @@ export default function ComposeView({
                       >
                         <span
                           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${
-                            pose ? 'bg-mint-pale' : 'border-2 border-dashed border-line text-[10px] text-ink-muted'
+                            pose || textOnly ? 'bg-mint-pale' : 'border-2 border-dashed border-line text-[10px] text-ink-muted'
                           }`}
                         >
-                          {pose ? (
+                          {textOnly ? (
+                            <TextOnlyMark compact />
+                          ) : pose ? (
                             <PoseImage src={assetUrl(pose.storage_path)} alt={pose.pose_key} className="h-full w-full" />
                           ) : (
                             '없음'
@@ -248,7 +259,7 @@ export default function ComposeView({
                           </span>
                           <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
                             <span>{splitSituationLabel(derived.situationByKey.get(line.situation_key)?.label ?? line.situation_key).short}</span>
-                            {line.pose_id && <StatusBadge status={line.status} />}
+                            {derived.isComplete(line) && <StatusBadge status={line.status} />}
                           </span>
                         </span>
                       </button>
@@ -321,7 +332,9 @@ export default function ComposeView({
         <div className="flex flex-col gap-3 rounded-2xl bg-ink p-3 text-white shadow-lg sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-mint-pale">
-              {previewPose ? (
+              {selectedTextOnly ? (
+                <TextOnlyMark compact />
+              ) : previewPose ? (
                 <PoseImage src={assetUrl(previewPose.storage_path)} alt={previewPose.pose_key} className="h-full w-full" />
               ) : (
                 <span className="text-[10px] text-mint-dark">이미지</span>
@@ -339,7 +352,7 @@ export default function ComposeView({
                 {message.text}
               </span>
             )}
-            {selectedLine?.pose_id && !selectedPose && (
+            {selectedLine && derived.isComplete(selectedLine) && !selectedPose && (
               <span className="rounded-full bg-white p-0.5">
                 <StatusSwitch
                   value={selectedLine.status}

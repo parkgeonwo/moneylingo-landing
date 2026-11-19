@@ -132,6 +132,20 @@ export function PoseImage({ src, alt, className }: { src: string; alt: string; c
   );
 }
 
+/** 멘트만 쓰는 상황 표시 (앱은 고정 얼굴 아이콘을 씀) */
+export function TextOnlyMark({ compact }: { compact?: boolean }) {
+  return compact ? (
+    <span className="flex h-full w-full items-center justify-center rounded-lg bg-paper text-[10px] leading-tight text-ink-muted">
+      멘트만
+    </span>
+  ) : (
+    <span className="flex h-28 w-full flex-col items-center justify-center gap-1 text-center text-xs text-ink-muted">
+      <span className="font-semibold text-ink-soft">멘트만 쓰는 상황</span>
+      <span>앱은 고정 얼굴 아이콘을 보여줘요</span>
+    </span>
+  );
+}
+
 /** 큰 숫자 */
 export function Figure({ value, className }: { value: number; className?: string }) {
   return (
@@ -205,13 +219,15 @@ export function EmptyState({ text, action }: { text: string; action?: React.Reac
 }
 
 /** 앱 화면 느낌의 미리보기 (실제 앱 레이아웃과 다를 수 있음) */
-export function PhonePreview({ imageUrl, text }: { imageUrl?: string; text: string }) {
+export function PhonePreview({ imageUrl, text, textOnly }: { imageUrl?: string; text: string; textOnly?: boolean }) {
   return (
     <div className="mx-auto w-[220px]">
       <div className="aspect-[9/19] overflow-hidden rounded-[2rem] border-[6px] border-ink bg-mint-pale">
         <div className="flex h-full flex-col items-center justify-center gap-4 px-4">
           <SpeechBubble text={text} className="w-full text-center" />
-          {imageUrl ? (
+          {textOnly ? (
+            <TextOnlyMark />
+          ) : imageUrl ? (
             <PoseImage src={imageUrl} alt="포즈 미리보기" className="h-36 w-36" />
           ) : (
             <div className="flex h-36 w-36 items-center justify-center rounded-xl border-2 border-dashed border-mint text-xs text-mint-dark">

@@ -27,6 +27,12 @@ export interface Derived {
   poseById: Map<string, Pose>;
   /** 멘트에 묶인 포즈 (이미지 없는 멘트면 undefined) */
   poseOf: (line: Line) => Pose | undefined;
+  /** 멘트만 쓰는 상황 (이미지 불필요) */
+  isTextOnly: (situationKey: string) => boolean;
+  /** 카드로 완성됐는지: 이미지가 묶였거나, 멘트만 쓰는 상황 */
+  isComplete: (line: Line) => boolean;
+  /** 앱에 나가는 카드인지 */
+  isLineLive: (line: Line) => boolean;
   situationByKey: Map<string, Situation>;
   /** 상황별 앱 노출 카드 수 (ko) */
   liveBySituation: Map<string, number>;
@@ -88,6 +94,9 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
     const poseById = new Map(poses.map((p) => [p.id, p]));
     const poseOf = (line: Line) => (line.pose_id ? poseById.get(line.pose_id) : undefined);
     const situationByKey = new Map(situations.map((s) => [s.key, s]));
+    const isTextOnly = (key: string) => situationByKey.get(key)?.shows_pose === false;
+    const isComplete = (line: Line) => !!line.pose_id || isTextOnly(line.situation_key);
+    const isLineLive = (line: Line) => isLive(line, poseOf(line), isTextOnly(line.situation_key));
     const liveBySituation = new Map<string, number>();
     const draftBySituation = new Map<string, number>();
     const unpairedBySituation = new Map<string, number>();
@@ -97,11 +106,11 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
     for (const l of lines) {
       if (l.pose_id) linesByPose.set(l.pose_id, [...(linesByPose.get(l.pose_id) ?? []), l]);
       if (l.locale !== 'ko') continue;
-      if (!l.pose_id) {
+      if (!isComplete(l)) {
         if (l.status !== 'archived') bump(unpairedBySituation, l.situation_key);
         continue;
       }
-      if (isLive(l, poseOf(l))) bump(liveBySituation, l.situation_key);
+      if (isLineLive(l)) bump(liveBySituation, l.situation_key);
       if (l.status === 'draft') bump(draftBySituation, l.situation_key);
     }
 
@@ -112,6 +121,9 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
     return {
       poseById,
       poseOf,
+      isTextOnly,
+      isComplete,
+      isLineLive,
       unpairedBySituation,
       situationByKey,
       liveBySituation,

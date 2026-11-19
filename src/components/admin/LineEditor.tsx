@@ -105,7 +105,8 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
   };
 
   /** 이미지 없는 멘트는 공개 불가 (DB 제약과 같은 규칙) */
-  const activeWithoutPose = form.status === 'active' && !form.pose_id;
+  const textOnly = situation?.shows_pose === false;
+  const activeWithoutPose = !textOnly && form.status === 'active' && !form.pose_id;
 
   const canSave =
     !activeWithoutPose &&
@@ -120,6 +121,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
     setError(null);
     const payload: LineInput = {
       ...form,
+      pose_id: textOnly ? null : form.pose_id,
       line_text: form.line_text.trim(),
       note: form.note?.trim() || null,
     };
@@ -208,6 +210,11 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             <p className="text-sm text-alarm">{MAX_LENGTH}자를 넘을 수 없습니다.</p>
           )}
 
+          {textOnly ? (
+            <p className="rounded-lg bg-paper px-3 py-2.5 text-sm text-ink-soft">
+              이 상황은 앱이 고정 얼굴 아이콘을 보여줘서 <strong className="text-ink">멘트만</strong> 있으면 돼요.
+            </p>
+          ) : (
           <Field label="포즈" hint={selectedPose ? selectedPose.pose_key : '안 고르면 이미지 없는 멘트로 저장돼요'}>
             <input
               placeholder="포즈 이름·태그 검색"
@@ -239,6 +246,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
               )}
             </div>
           </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="상태">
@@ -287,6 +295,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
 
         <div className="md:pt-6">
           <PhonePreview
+            textOnly={textOnly}
             imageUrl={selectedPose ? assetUrl(selectedPose.storage_path) : undefined}
             text={form.line_text}
           />

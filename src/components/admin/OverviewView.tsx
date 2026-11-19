@@ -57,7 +57,7 @@ export default function OverviewView({
 
   const liveTotal = Array.from(derived.liveBySituation.values()).reduce((a, b) => a + b, 0);
   const emptySituations = situations.filter((s) => !derived.liveBySituation.get(s.key)).length;
-  const draftLines = lines.filter((l) => l.status === 'draft' && l.pose_id);
+  const draftLines = lines.filter((l) => l.status === 'draft' && derived.isComplete(l));
   const draftPoses = poses.filter((p) => p.status === 'draft');
   const orphanPoses = poses.filter((p) => p.status !== 'archived' && !derived.linesByPose.has(p.id));
 

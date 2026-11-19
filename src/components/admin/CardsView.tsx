@@ -6,7 +6,6 @@ import {
   HEALTHY_CARD_COUNT,
   LOCALES,
   STATUS_LABEL,
-  isLive,
   splitSituationLabel,
   type ContentStatus,
   type Line,
@@ -15,7 +14,7 @@ import {
   type Situation,
 } from '@/lib/admin/types';
 import type { Derived } from './AdminDashboard';
-import { EmptyState, PoseImage, SpeechBubble, StatusSwitch, filterClass, primaryButton } from './ui';
+import { EmptyState, PoseImage, SpeechBubble, StatusSwitch, TextOnlyMark, filterClass, primaryButton } from './ui';
 
 interface CardsViewProps {
   situations: Situation[];
@@ -59,12 +58,12 @@ export default function CardsView({
     const q = query.trim();
     return lines.filter(
       (l) =>
-        l.pose_id !== null && // 이미지가 묶인 것만 카드
+        derived.isComplete(l) && // 이미지가 묶였거나 멘트만 쓰는 상황
         l.locale === locale &&
         (status === 'all' || l.status === status) &&
         (!q || l.line_text.includes(q) || l.note?.includes(q))
     );
-  }, [lines, locale, status, query]);
+  }, [lines, locale, status, query, derived]);
 
   const shownSituations =
     situationFilter === 'all' ? situations : situations.filter((s) => s.key === situationFilter);
@@ -193,6 +192,8 @@ export default function CardsView({
                       key={line.id}
                       line={line}
                       pose={derived.poseOf(line)}
+                      textOnly={derived.isTextOnly(line.situation_key)}
+                      live={derived.isLineLive(line)}
                       onEdit={() => onEdit(line)}
                       onStatus={(next) => onStatus(line.id, next)}
                     />
@@ -238,15 +239,19 @@ function Chip({
 function CardTile({
   line,
   pose,
+  textOnly,
+  live,
   onEdit,
   onStatus,
 }: {
   line: Line;
   pose: Pose | undefined;
+  textOnly: boolean;
+  live: boolean;
   onEdit: () => void;
   onStatus: (next: ContentStatus) => Promise<void>;
 }) {
-  const blockedByPose = line.status === 'active' && !isLive(line, pose);
+  const blockedByPose = line.status === 'active' && !live;
   return (
     <div
       className={`group overflow-hidden rounded-2xl bg-white ring-1 transition-shadow hover:ring-ink-muted ${
@@ -259,9 +264,13 @@ function CardTile({
         className="flex w-full flex-col items-center gap-3 bg-mint-pale px-4 pb-3 pt-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-mint-strong"
       >
         <SpeechBubble text={line.line_text} className="w-full text-center" />
-        <div className="h-28 w-28">
-          {pose && <PoseImage src={assetUrl(pose.storage_path)} alt={pose.pose_key} className="h-full w-full" />}
-        </div>
+        {textOnly ? (
+          <TextOnlyMark />
+        ) : (
+          <div className="h-28 w-28">
+            {pose && <PoseImage src={assetUrl(pose.storage_path)} alt={pose.pose_key} className="h-full w-full" />}
+          </div>
+        )}
       </button>
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <StatusSwitch value={line.status} onChange={onStatus} />

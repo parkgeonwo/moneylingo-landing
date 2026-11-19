@@ -15,6 +15,8 @@ export interface Situation {
   label: string;
   description: string | null;
   available_vars: string[];
+  /** false = 앱이 고정 얼굴 아이콘을 쓰고 멘트만 가져감 (로그아웃·탈퇴 확인) */
+  shows_pose: boolean;
   sort_order: number;
 }
 
@@ -88,9 +90,12 @@ export function toCardSituationKey(legacyKey: string): string {
   return legacyKey.replace(/^(input\.(?:under|close|over))_(?:before|after)18$/, '$1');
 }
 
-/** 앱에 실제로 나오는 카드: 멘트와 포즈가 모두 공개 상태 */
-export function isLive(line: Line, pose: Pose | undefined): boolean {
-  return line.status === 'active' && pose?.status === 'active';
+/**
+ * 앱에 실제로 나오는 카드: 멘트가 공개 + 포즈도 공개
+ * (멘트만 쓰는 상황은 포즈 상관없이 멘트만 공개면 됨)
+ */
+export function isLive(line: Line, pose: Pose | undefined, textOnly = false): boolean {
+  return line.status === 'active' && (textOnly || pose?.status === 'active');
 }
 
 /** 상황당 권장 카드 수 (반복 체감을 줄이기 위한 기준) */
