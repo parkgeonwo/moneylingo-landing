@@ -234,6 +234,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
             lines={lines}
             derived={derived}
             onLinesChanged={setLines}
+            onPosesChanged={setPoses}
             onEditLine={(line) => setLineTarget({ mode: 'edit', line })}
             onCreatePose={() => setPoseTarget('new')}
             onLineStatus={changeLineStatus}

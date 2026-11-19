@@ -43,7 +43,12 @@ export interface Line {
   line_text: string;
   weight: number;
   status: ContentStatus;
+  /** 프롬프트 만들 때 참고할 원하는 동작도 여기에 적음 */
   note: string | null;
+  /** AI 이미지 프롬프트 요청 표시 (Claude가 프롬프트를 채우면 false) */
+  prompt_requested: boolean;
+  /** ChatGPT 이미지 생성용 프롬프트 */
+  image_prompt: string | null;
   created_at: string;
   updated_at: string;
 }

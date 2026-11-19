@@ -104,6 +104,27 @@ export async function setLinePose(id: string, poseId: string): Promise<void> {
   if (error) fail('이미지 연결 실패', error);
 }
 
+/** AI 이미지 프롬프트 요청 표시 켜기/끄기 */
+export async function setLinePromptRequested(id: string, requested: boolean): Promise<void> {
+  const { error } = await getSupabase()
+    .from('character_lines')
+    .update({ prompt_requested: requested })
+    .eq('id', id);
+  if (error) fail('프롬프트 요청 표시 실패', error);
+}
+
+/** 멘트의 프롬프트로 만든 이미지에 프롬프트 기록 남기기 (비어 있을 때만) */
+export async function recordPosePrompt(poseId: string, prompt: string): Promise<boolean> {
+  const { data, error } = await getSupabase()
+    .from('character_poses')
+    .update({ ai_prompt: prompt, ai_model: 'ChatGPT' })
+    .eq('id', poseId)
+    .is('ai_prompt', null)
+    .select('id');
+  if (error) fail('프롬프트 기록 실패', error);
+  return (data?.length ?? 0) > 0;
+}
+
 export async function deleteLine(id: string): Promise<void> {
   const { error } = await getSupabase().from('character_lines').delete().eq('id', id);
   if (error) fail('멘트 삭제 실패', error);

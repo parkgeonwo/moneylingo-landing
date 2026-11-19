@@ -282,13 +282,25 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             </p>
           )}
 
-          <Field label="메모" hint="관리용, 앱에 안 보임">
+          <Field label="메모" hint="관리용, 앱에 안 보임 · 원하는 동작을 적으면 프롬프트에 반영">
             <input
               value={form.note ?? ''}
               onChange={(e) => set('note', e.target.value)}
               className={inputClass}
             />
           </Field>
+
+          {target.mode === 'edit' && target.line.image_prompt && (
+            <Field label="AI 이미지 프롬프트" hint="Claude가 작성, 읽기 전용">
+              <textarea
+                readOnly
+                rows={6}
+                value={target.line.image_prompt}
+                onFocus={(e) => e.currentTarget.select()}
+                className={`${inputClass} resize-y font-mono text-xs`}
+              />
+            </Field>
+          )}
 
           {error && <p className="rounded-lg bg-alarm-pale p-3 text-sm text-alarm">{error}</p>}
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { assetUrl, createLine, setLinePose } from '@/lib/admin/api';
+import { assetUrl, createLine, recordPosePrompt, setLinePose, setLinePromptRequested } from '@/lib/admin/api';
 import {
   LOCALES,
   STATUS_LABEL,
@@ -33,18 +33,33 @@ interface ComposeViewProps {
   derived: Derived;
   /** 목록을 다시 불러오지 않고 바로 갱신 */
   onLinesChanged: (update: (prev: Line[]) => Line[]) => void;
+  onPosesChanged: (update: (prev: Pose[]) => Pose[]) => void;
   onEditLine: (line: Line) => void;
   onCreatePose: () => void;
   onLineStatus: (id: string, status: ContentStatus) => Promise<void>;
 }
 
-type PairFilter = 'unpaired' | 'all' | 'paired';
+type PairFilter = 'unpaired' | 'requested' | 'all' | 'paired';
 
 const PAIR_FILTER_LABEL: Record<PairFilter, string> = {
   unpaired: '이미지 없음',
+  requested: '프롬프트 요청',
   all: '전체',
   paired: '카드 완성',
 };
+
+function matchesPairFilter(filter: PairFilter, line: Line, complete: boolean): boolean {
+  switch (filter) {
+    case 'unpaired':
+      return !complete;
+    case 'requested':
+      return line.prompt_requested;
+    case 'paired':
+      return complete;
+    default:
+      return true;
+  }
+}
 
 const MAX_LENGTH = 200;
 
@@ -54,6 +69,7 @@ export default function ComposeView({
   lines,
   derived,
   onLinesChanged,
+  onPosesChanged,
   onEditLine,
   onCreatePose,
   onLineStatus,
@@ -68,6 +84,7 @@ export default function ComposeView({
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
   const [selectedPoseId, setSelectedPoseId] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
   const selectedLine = lines.find((l) => l.id === selectedLineId);
@@ -84,10 +101,12 @@ export default function ComposeView({
         l.status !== 'archived' &&
         l.locale === locale &&
         (situationFilter === 'all' || l.situation_key === situationFilter) &&
-        (pairFilter === 'all' || (pairFilter === 'unpaired') !== derived.isComplete(l)) &&
+        matchesPairFilter(pairFilter, l, derived.isComplete(l)) &&
         (!q || l.line_text.includes(q) || l.note?.includes(q))
     );
   }, [lines, locale, situationFilter, pairFilter, query, derived]);
+
+  const requestedCount = lines.filter((l) => l.prompt_requested && l.status !== 'archived').length;
 
   const visiblePoses = useMemo(() => poses.filter((p) => p.status !== 'archived'), [poses]);
   const localeOptions = Array.from(new Set([...LOCALES, ...lines.map((l) => l.locale)]));
@@ -113,6 +132,30 @@ export default function ComposeView({
     });
   };
 
+  const togglePromptRequest = async (line: Line) => {
+    const next = !line.prompt_requested;
+    setRequestingId(line.id);
+    setMessage(null);
+    try {
+      await setLinePromptRequested(line.id, next);
+      onLinesChanged((prev) => prev.map((l) => (l.id === line.id ? { ...l, prompt_requested: next } : l)));
+    } catch (e) {
+      setMessage({ tone: 'error', text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setRequestingId(null);
+    }
+  };
+
+  const copyPrompt = async () => {
+    if (!selectedLine?.image_prompt) return;
+    try {
+      await navigator.clipboard.writeText(selectedLine.image_prompt);
+      setMessage({ tone: 'ok', text: '프롬프트를 복사했어요. ChatGPT에 기본 캐릭터 이미지와 같이 붙여넣으세요.' });
+    } catch {
+      setMessage({ tone: 'error', text: '복사하지 못했어요. 멘트 수정 창에서 프롬프트를 직접 선택해 복사하세요.' });
+    }
+  };
+
   const handleLink = async () => {
     if (!selectedLine || !selectedPose) return;
     setLinking(true);
@@ -123,6 +166,13 @@ export default function ComposeView({
       onLinesChanged((prev) =>
         prev.map((l) => (l.id === selectedLine.id ? { ...l, pose_id: selectedPose.id } : l))
       );
+      // 이 멘트의 프롬프트로 만든 이미지라면 포즈에 프롬프트 기록 (이미 기록이 있으면 그대로 둠)
+      const prompt = selectedLine.image_prompt;
+      if (prompt && !selectedPose.ai_prompt && (await recordPosePrompt(selectedPose.id, prompt))) {
+        onPosesChanged((prev) =>
+          prev.map((p) => (p.id === selectedPose.id ? { ...p, ai_prompt: prompt, ai_model: 'ChatGPT' } : p))
+        );
+      }
       // 이미지 없는 멘트를 연달아 묶을 수 있게 다음 멘트를 자동 선택
       const next = visibleLines.find((l) => !derived.isComplete(l) && l.id !== selectedLine.id);
       setSelectedPoseId(null);
@@ -181,6 +231,9 @@ export default function ComposeView({
                   }`}
                 >
                   {PAIR_FILTER_LABEL[f]}
+                  {f === 'requested' && requestedCount > 0 && (
+                    <span className="ml-1 rounded-full bg-caution-pale px-1.5 text-[11px] text-caution">{requestedCount}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -223,7 +276,9 @@ export default function ComposeView({
               text={
                 pairFilter === 'unpaired'
                   ? '이미지가 필요한 멘트가 없어요. 위에서 새 멘트를 써보세요.'
-                  : '조건에 맞는 멘트가 없어요.'
+                  : pairFilter === 'requested'
+                    ? '프롬프트를 요청한 멘트가 없어요. 멘트 오른쪽의 "프롬프트 요청"을 눌러 표시하세요.'
+                    : '조건에 맞는 멘트가 없어요.'
               }
             />
           ) : (
@@ -260,9 +315,29 @@ export default function ComposeView({
                           <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
                             <span>{splitSituationLabel(derived.situationByKey.get(line.situation_key)?.label ?? line.situation_key).short}</span>
                             {derived.isComplete(line) && <StatusBadge status={line.status} />}
+                            {line.image_prompt && <span className="text-mint-dark">프롬프트 있음</span>}
                           </span>
                         </span>
                       </button>
+                      {!textOnly && (
+                        <button
+                          onClick={() => togglePromptRequest(line)}
+                          disabled={requestingId === line.id}
+                          aria-pressed={line.prompt_requested}
+                          title={
+                            line.prompt_requested
+                              ? 'Claude에게 프롬프트를 요청한 멘트예요. 다시 누르면 요청을 취소해요.'
+                              : '이 멘트에 맞는 AI 이미지 프롬프트를 Claude에게 요청하려면 표시하세요.'
+                          }
+                          className={`shrink-0 rounded-md px-2 py-1 text-xs focus-visible:outline-2 focus-visible:outline-mint-strong disabled:opacity-50 ${
+                            line.prompt_requested
+                              ? 'bg-caution-pale font-semibold text-caution'
+                              : 'text-ink-muted hover:bg-paper hover:text-ink'
+                          }`}
+                        >
+                          {line.prompt_requested ? '요청됨' : '프롬프트 요청'}
+                        </button>
+                      )}
                       <button
                         onClick={() => onEditLine(line)}
                         className="shrink-0 rounded-md px-2 py-1 text-xs text-ink-muted hover:bg-paper hover:text-ink focus-visible:outline-2 focus-visible:outline-mint-strong"
@@ -351,6 +426,14 @@ export default function ComposeView({
               <span className={`text-xs ${message.tone === 'ok' ? 'text-mint' : 'text-alarm-pale'}`}>
                 {message.text}
               </span>
+            )}
+            {selectedLine?.image_prompt && !selectedTextOnly && (
+              <button
+                onClick={copyPrompt}
+                className="rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                프롬프트 복사
+              </button>
             )}
             {selectedLine && derived.isComplete(selectedLine) && !selectedPose && (
               <span className="rounded-full bg-white p-0.5">
