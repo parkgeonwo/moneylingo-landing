@@ -49,7 +49,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
           note: target.line.note,
         }
       : {
-          pose_id: target.preset.pose_id ?? '',
+          pose_id: target.preset.pose_id ?? null,
           situation_key: target.preset.situation_key ?? situations[0]?.key ?? '',
           locale: target.preset.locale ?? 'ko',
           line_text: '',
@@ -104,8 +104,11 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
     });
   };
 
+  /** 이미지 없는 멘트는 공개 불가 (DB 제약과 같은 규칙) */
+  const activeWithoutPose = form.status === 'active' && !form.pose_id;
+
   const canSave =
-    !!form.pose_id &&
+    !activeWithoutPose &&
     !!form.situation_key &&
     form.line_text.trim().length > 0 &&
     form.line_text.length <= MAX_LENGTH &&
@@ -132,7 +135,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
 
   const handleDelete = async () => {
     if (target.mode !== 'edit') return;
-    if (!window.confirm('이 카드를 삭제할까요? 되돌릴 수 없습니다.\n(앱에서만 내리려면 상태를 "보관"으로 바꾸세요)')) return;
+    if (!window.confirm('이 멘트를 삭제할까요? 되돌릴 수 없습니다.\n(앱에서만 내리려면 상태를 "보관"으로 바꾸세요)')) return;
     setSaving(true);
     try {
       await deleteLine(target.line.id);
@@ -144,7 +147,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
   };
 
   return (
-    <Modal title={target.mode === 'edit' ? '카드 수정' : '카드 추가'} onClose={onClose} wide>
+    <Modal title={target.mode === 'edit' ? '멘트 수정' : '멘트 추가'} onClose={onClose} wide>
       <div className="grid gap-6 md:grid-cols-[1fr_240px]">
         <div className="space-y-4">
           <div className="grid grid-cols-[1fr_auto] gap-3">
@@ -205,7 +208,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             <p className="text-sm text-alarm">{MAX_LENGTH}자를 넘을 수 없습니다.</p>
           )}
 
-          <Field label="포즈" hint={selectedPose ? selectedPose.pose_key : '선택 필요'}>
+          <Field label="포즈" hint={selectedPose ? selectedPose.pose_key : '안 고르면 이미지 없는 멘트로 저장돼요'}>
             <input
               placeholder="포즈 이름·태그 검색"
               value={poseFilter}
@@ -217,7 +220,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => set('pose_id', p.id)}
+                  onClick={() => set('pose_id', form.pose_id === p.id ? null : p.id)}
                   title={`${p.pose_key}${p.status !== 'active' ? ` (${STATUS_LABEL[p.status]})` : ''}`}
                   className={`relative aspect-square rounded-lg bg-paper p-1 ${
                     form.pose_id === p.id ? 'ring-2 ring-mint-strong' : 'hover:ring-1 hover:ring-ink-muted'
@@ -262,6 +265,9 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
               />
             </Field>
           </div>
+          {activeWithoutPose && (
+            <p className="text-sm text-alarm">이미지가 없는 멘트는 공개할 수 없어요. 포즈를 고르거나 초안으로 두세요.</p>
+          )}
           {form.status === 'active' && selectedPose && selectedPose.status !== 'active' && (
             <p className="text-sm text-caution">
               선택한 포즈가 &quot;{STATUS_LABEL[selectedPose.status]}&quot; 상태라 포즈를 공개하기 전까지 앱에 나오지 않습니다.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAll, fetchLegacy, setLineStatus, setPoseStatus } from '@/lib/admin/api';
 import {
   isLive,
+  toCardSituationKey,
   type ContentStatus,
   type LegacyAsset,
   type LegacyMessage,
@@ -13,21 +14,26 @@ import {
 } from '@/lib/admin/types';
 import OverviewView from './OverviewView';
 import CardsView from './CardsView';
+import ComposeView from './ComposeView';
 import PosesView from './PosesView';
 import LegacyView from './LegacyView';
 import LineEditor, { type LineEditorTarget } from './LineEditor';
 import PoseEditor from './PoseEditor';
 
-export type View = 'overview' | 'cards' | 'poses' | 'legacy';
+export type View = 'overview' | 'compose' | 'cards' | 'poses' | 'legacy';
 
 /** 여러 화면에서 같이 쓰는 계산 결과 */
 export interface Derived {
   poseById: Map<string, Pose>;
+  /** 멘트에 묶인 포즈 (이미지 없는 멘트면 undefined) */
+  poseOf: (line: Line) => Pose | undefined;
   situationByKey: Map<string, Situation>;
   /** 상황별 앱 노출 카드 수 (ko) */
   liveBySituation: Map<string, number>;
-  /** 상황별 초안 카드 수 (ko) */
+  /** 상황별 초안 카드 수 (ko, 이미지가 묶인 것만) */
   draftBySituation: Map<string, number>;
+  /** 상황별 이미지 없는 멘트 수 (ko) */
+  unpairedBySituation: Map<string, number>;
   /** 상황별 기존 시스템 멘트 수 */
   legacyBySituation: Map<string, number>;
   linesByPose: Map<string, Line[]>;
@@ -37,7 +43,8 @@ export interface Derived {
 
 const NAV: { key: View; label: string }[] = [
   { key: 'overview', label: '상황판' },
-  { key: 'cards', label: '멘트 카드' },
+  { key: 'compose', label: '카드 만들기' },
+  { key: 'cards', label: '카드 목록' },
   { key: 'poses', label: '포즈 이미지' },
   { key: 'legacy', label: '현재 앱 콘텐츠' },
 ];
@@ -79,24 +86,33 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
 
   const derived = useMemo<Derived>(() => {
     const poseById = new Map(poses.map((p) => [p.id, p]));
+    const poseOf = (line: Line) => (line.pose_id ? poseById.get(line.pose_id) : undefined);
     const situationByKey = new Map(situations.map((s) => [s.key, s]));
     const liveBySituation = new Map<string, number>();
     const draftBySituation = new Map<string, number>();
+    const unpairedBySituation = new Map<string, number>();
     const linesByPose = new Map<string, Line[]>();
     const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
 
     for (const l of lines) {
-      linesByPose.set(l.pose_id, [...(linesByPose.get(l.pose_id) ?? []), l]);
+      if (l.pose_id) linesByPose.set(l.pose_id, [...(linesByPose.get(l.pose_id) ?? []), l]);
       if (l.locale !== 'ko') continue;
-      if (isLive(l, poseById.get(l.pose_id))) bump(liveBySituation, l.situation_key);
+      if (!l.pose_id) {
+        if (l.status !== 'archived') bump(unpairedBySituation, l.situation_key);
+        continue;
+      }
+      if (isLive(l, poseOf(l))) bump(liveBySituation, l.situation_key);
       if (l.status === 'draft') bump(draftBySituation, l.situation_key);
     }
 
+    // 기존 앱은 기록 완료 화면을 18시 전/후로 나눔 → 카드 상황 기준으로 합쳐서 셈
     const legacyBySituation = new Map<string, number>();
-    for (const m of legacyMessages) bump(legacyBySituation, `${m.screen}.${m.state_id}`);
+    for (const m of legacyMessages) bump(legacyBySituation, toCardSituationKey(`${m.screen}.${m.state_id}`));
 
     return {
       poseById,
+      poseOf,
+      unpairedBySituation,
       situationByKey,
       liveBySituation,
       draftBySituation,
@@ -199,6 +215,17 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
             onEditPose={setPoseTarget}
             onNavigate={setView}
           />
+        ) : view === 'compose' ? (
+          <ComposeView
+            situations={situations}
+            poses={poses}
+            lines={lines}
+            derived={derived}
+            onLinesChanged={setLines}
+            onEditLine={(line) => setLineTarget({ mode: 'edit', line })}
+            onCreatePose={() => setPoseTarget('new')}
+            onLineStatus={changeLineStatus}
+          />
         ) : view === 'cards' ? (
           <CardsView
             situations={situations}
@@ -210,6 +237,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
             onCreate={(preset) => setLineTarget({ mode: 'new', preset })}
             onEdit={(line) => setLineTarget({ mode: 'edit', line })}
             onStatus={changeLineStatus}
+            onCompose={() => setView('compose')}
           />
         ) : view === 'poses' ? (
           <PosesView

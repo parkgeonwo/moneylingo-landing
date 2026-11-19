@@ -57,7 +57,7 @@ export default function OverviewView({
 
   const liveTotal = Array.from(derived.liveBySituation.values()).reduce((a, b) => a + b, 0);
   const emptySituations = situations.filter((s) => !derived.liveBySituation.get(s.key)).length;
-  const draftLines = lines.filter((l) => l.status === 'draft');
+  const draftLines = lines.filter((l) => l.status === 'draft' && l.pose_id);
   const draftPoses = poses.filter((p) => p.status === 'draft');
   const orphanPoses = poses.filter((p) => p.status !== 'archived' && !derived.linesByPose.has(p.id));
 
@@ -91,6 +91,7 @@ export default function OverviewView({
                   const live = derived.liveBySituation.get(s.key) ?? 0;
                   const draft = derived.draftBySituation.get(s.key) ?? 0;
                   const legacy = derived.legacyBySituation.get(s.key) ?? 0;
+                  const unpaired = derived.unpairedBySituation.get(s.key) ?? 0;
                   const health = healthOf(live);
                   return (
                     <button
@@ -105,8 +106,9 @@ export default function OverviewView({
                       <Figure value={live} className="text-3xl" />
                       <span className="text-[11px] leading-tight text-ink-soft">
                         {draft > 0 && <span className="mr-2">초안 {draft}</span>}
+                        {unpaired > 0 && <span className="mr-2">이미지 필요 {unpaired}</span>}
                         {legacy > 0 && <span>기존 멘트 {legacy}</span>}
-                        {draft === 0 && legacy === 0 && <span>&nbsp;</span>}
+                        {draft === 0 && unpaired === 0 && legacy === 0 && <span>&nbsp;</span>}
                       </span>
                     </button>
                   );
@@ -127,14 +129,14 @@ export default function OverviewView({
           {draftLines.length === 0 ? (
             <p className="rounded-xl bg-white p-5 text-sm text-ink-soft ring-1 ring-line">
               검토할 초안이 없어요.{' '}
-              <button onClick={() => onNavigate('cards')} className="font-semibold text-mint-strong underline">
+              <button onClick={() => onNavigate('compose')} className="font-semibold text-mint-strong underline">
                 새 카드 만들기
               </button>
             </p>
           ) : (
             <ul className="divide-y divide-line overflow-hidden rounded-xl bg-white ring-1 ring-line">
               {draftLines.slice(0, 8).map((line) => {
-                const pose = derived.poseById.get(line.pose_id);
+                const pose = derived.poseOf(line);
                 return (
                   <li key={line.id}>
                     <button

@@ -34,7 +34,8 @@ export interface Pose {
 
 export interface Line {
   id: string;
-  pose_id: string;
+  /** 비어 있으면 아직 이미지와 묶지 않은 멘트 (공개 불가) */
+  pose_id: string | null;
   situation_key: string;
   locale: string;
   line_text: string;
@@ -77,6 +78,14 @@ export interface LegacyMessage {
 export function splitSituationLabel(label: string): { group: string; short: string } {
   const [group, ...rest] = label.split(' · ');
   return { group, short: rest.length ? rest.join(' · ') : group };
+}
+
+/**
+ * 기존 시스템 상황 → 카드 상황
+ * 카드는 기록 완료 화면의 18시 전/후 구분이 없음 (input.under_before18 → input.under)
+ */
+export function toCardSituationKey(legacyKey: string): string {
+  return legacyKey.replace(/^(input\.(?:under|close|over))_(?:before|after)18$/, '$1');
 }
 
 /** 앱에 실제로 나오는 카드: 멘트와 포즈가 모두 공개 상태 */

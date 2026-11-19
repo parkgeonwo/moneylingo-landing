@@ -27,6 +27,7 @@ interface CardsViewProps {
   onCreate: (preset: Partial<LineInput>) => void;
   onEdit: (line: Line) => void;
   onStatus: (id: string, status: ContentStatus) => Promise<void>;
+  onCompose: () => void;
 }
 
 export default function CardsView({
@@ -39,6 +40,7 @@ export default function CardsView({
   onCreate,
   onEdit,
   onStatus,
+  onCompose,
 }: CardsViewProps) {
   const [locale, setLocale] = useState('ko');
   const [status, setStatus] = useState<ContentStatus | 'all'>('all');
@@ -57,6 +59,7 @@ export default function CardsView({
     const q = query.trim();
     return lines.filter(
       (l) =>
+        l.pose_id !== null && // 이미지가 묶인 것만 카드
         l.locale === locale &&
         (status === 'all' || l.status === status) &&
         (!q || l.line_text.includes(q) || l.note?.includes(q))
@@ -66,6 +69,8 @@ export default function CardsView({
   const shownSituations =
     situationFilter === 'all' ? situations : situations.filter((s) => s.key === situationFilter);
 
+  const unpairedTotal = Array.from(derived.unpairedBySituation.values()).reduce((a, b) => a + b, 0);
+
   const localeOptions = Array.from(new Set([...LOCALES, ...lines.map((l) => l.locale)]));
   const isFiltering = status !== 'all' || query.trim() !== '';
 
@@ -73,20 +78,23 @@ export default function CardsView({
     <div>
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">멘트 카드</h1>
-          <p className="mt-1 text-sm text-ink-soft">카드 하나는 포즈 이미지 한 장과 멘트 한 줄이에요.</p>
+          <h1 className="text-2xl font-bold">카드 목록</h1>
+          <p className="mt-1 text-sm text-ink-soft">이미지와 묶인 멘트만 보여요. 공개로 바꾸면 앱에 나가요.</p>
         </div>
-        <button
-          onClick={() =>
-            onCreate({ locale, ...(situationFilter !== 'all' && { situation_key: situationFilter }) })
-          }
-          disabled={poses.length === 0}
-          title={poses.length === 0 ? '포즈 이미지를 먼저 올려주세요' : undefined}
-          className={primaryButton}
-        >
+        <button onClick={onCompose} className={primaryButton}>
           카드 만들기
         </button>
       </header>
+
+      {unpairedTotal > 0 && (
+        <button
+          onClick={onCompose}
+          className="mb-4 flex w-full items-center justify-between gap-3 rounded-xl bg-caution-pale px-4 py-3 text-left text-sm text-caution hover:brightness-95"
+        >
+          <span>이미지가 없어서 아직 카드가 아닌 멘트가 {unpairedTotal}개 있어요.</span>
+          <span className="shrink-0 font-semibold underline">카드 만들기에서 묶기</span>
+        </button>
+      )}
 
       {/* 상황 선택 */}
       <div className="mb-4 space-y-2 rounded-2xl bg-white p-3 ring-1 ring-line">
@@ -184,7 +192,7 @@ export default function CardsView({
                     <CardTile
                       key={line.id}
                       line={line}
-                      pose={derived.poseById.get(line.pose_id)}
+                      pose={derived.poseOf(line)}
                       onEdit={() => onEdit(line)}
                       onStatus={(next) => onStatus(line.id, next)}
                     />

@@ -87,14 +87,21 @@ export async function setPoseStatus(id: string, status: ContentStatus): Promise<
 
 // ---------- 멘트 ----------
 
-export async function createLine(input: LineInput): Promise<void> {
-  const { error } = await getSupabase().from('character_lines').insert(input);
-  if (error) fail('멘트 저장 실패', error);
+export async function createLine(input: LineInput): Promise<Line> {
+  const { data, error } = await getSupabase().from('character_lines').insert(input).select().single();
+  if (error || !data) fail('멘트 저장 실패', error);
+  return data;
 }
 
 export async function updateLine(id: string, input: LineInput): Promise<void> {
   const { error } = await getSupabase().from('character_lines').update(input).eq('id', id);
   if (error) fail('멘트 수정 실패', error);
+}
+
+/** 멘트에 이미지 묶기 (카드 만들기) */
+export async function setLinePose(id: string, poseId: string): Promise<void> {
+  const { error } = await getSupabase().from('character_lines').update({ pose_id: poseId }).eq('id', id);
+  if (error) fail('이미지 연결 실패', error);
 }
 
 export async function deleteLine(id: string): Promise<void> {
