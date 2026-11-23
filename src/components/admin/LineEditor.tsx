@@ -291,15 +291,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
           </Field>
 
           {target.mode === 'edit' && target.line.image_prompt && (
-            <Field label="AI 이미지 프롬프트" hint="Claude가 작성, 읽기 전용">
-              <textarea
-                readOnly
-                rows={6}
-                value={target.line.image_prompt}
-                onFocus={(e) => e.currentTarget.select()}
-                className={`${inputClass} resize-y font-mono text-xs`}
-              />
-            </Field>
+            <PromptBox prompt={target.line.image_prompt} />
           )}
 
           {error && <p className="rounded-lg bg-alarm-pale p-3 text-sm text-alarm">{error}</p>}
@@ -332,5 +324,58 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Claude가 쓴 이미지 프롬프트: 전체를 그대로 ChatGPT에 붙여넣는 용도 */
+function PromptBox({ prompt }: { prompt: string }) {
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+    setTimeout(() => setCopyState('idle'), 2000);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <span className="text-sm font-semibold text-ink">AI 이미지 프롬프트</span>
+          <span className="ml-2 text-xs text-ink-muted">기본 캐릭터 이미지와 함께 ChatGPT에 그대로 붙여넣기</span>
+        </div>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label="프롬프트 복사"
+          title="프롬프트 복사"
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-ink-soft hover:bg-mint-pale hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          {copyState === 'copied' ? (
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          ) : (
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="12" height="12" rx="2" />
+              <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+            </svg>
+          )}
+          {copyState === 'copied' ? '복사됨' : copyState === 'failed' ? '복사 실패' : '복사'}
+        </button>
+      </div>
+      <textarea
+        readOnly
+        rows={10}
+        value={prompt}
+        onFocus={(e) => e.currentTarget.select()}
+        aria-label="AI 이미지 프롬프트"
+        className={`${inputClass} mt-1 resize-y text-xs leading-relaxed`}
+      />
+    </div>
   );
 }
