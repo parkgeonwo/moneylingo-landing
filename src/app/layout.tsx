@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -27,6 +27,11 @@ export const metadata: Metadata = {
     title: "지갑교관 - 당신의 통장을 지키는 가장 확실한 훈련",
     description: "작심삼일 가계부는 이제 그만! 지갑교관이 당신의 소비 습관을 뜯어고쳐 드립니다.",
   },
+};
+
+/** 아이폰 홈 인디케이터 영역까지 그려야 하단 고정 바의 safe-area 여백이 동작함 */
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

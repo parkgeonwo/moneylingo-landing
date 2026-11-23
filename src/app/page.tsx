@@ -4,6 +4,7 @@ import Features from "@/components/Features";
 import FAQ from "@/components/FAQ";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
+import StoreBar from "@/components/StoreBar";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
         <CTA />
       </main>
       <Footer />
+      <StoreBar />
     </>
   );
 }
