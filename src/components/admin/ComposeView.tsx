@@ -9,6 +9,7 @@ import {
   type ContentStatus,
   type Line,
   type Pose,
+  type PosePreset,
   type Situation,
 } from '@/lib/admin/types';
 import type { Derived } from './AdminDashboard';
@@ -35,7 +36,8 @@ interface ComposeViewProps {
   onLinesChanged: (update: (prev: Line[]) => Line[]) => void;
   onPosesChanged: (update: (prev: Pose[]) => Pose[]) => void;
   onEditLine: (line: Line) => void;
-  onCreatePose: () => void;
+  /** 멘트를 고른 상태면 그 멘트의 추천 포즈 이름·프롬프트를 넘김 */
+  onCreatePose: (preset?: PosePreset) => void;
   onLineStatus: (id: string, status: ContentStatus) => Promise<void>;
 }
 
@@ -358,7 +360,25 @@ export default function ComposeView({
             <h2 id="compose-poses" className="text-base font-bold">
               <span className="mr-1.5 text-mint-strong">②</span>이미지 고르기
             </h2>
-            <button onClick={onCreatePose} className={secondaryButton}>
+            <button
+              onClick={() =>
+                onCreatePose(
+                  selectedLine && !selectedTextOnly
+                    ? {
+                        poseKey: selectedLine.suggested_pose_key ?? undefined,
+                        aiPrompt: selectedLine.image_prompt ?? undefined,
+                        aiModel: selectedLine.image_prompt ? 'ChatGPT' : undefined,
+                      }
+                    : undefined
+                )
+              }
+              title={
+                selectedLine?.suggested_pose_key && !selectedTextOnly
+                  ? `포즈 이름 "${selectedLine.suggested_pose_key}"로 올리기`
+                  : undefined
+              }
+              className={secondaryButton}
+            >
               이미지 올리기
             </button>
           </div>

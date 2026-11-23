@@ -10,6 +10,7 @@ import {
   type LegacyMessage,
   type Line,
   type Pose,
+  type PosePreset,
   type Situation,
 } from '@/lib/admin/types';
 import OverviewView from './OverviewView';
@@ -69,6 +70,12 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
 
   const [lineTarget, setLineTarget] = useState<LineEditorTarget | null>(null);
   const [poseTarget, setPoseTarget] = useState<Pose | 'new' | null>(null);
+  const [posePreset, setPosePreset] = useState<PosePreset | null>(null);
+
+  const openNewPose = (preset?: PosePreset) => {
+    setPosePreset(preset ?? null);
+    setPoseTarget('new');
+  };
 
   const reload = useCallback(async () => {
     try {
@@ -236,7 +243,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
             onLinesChanged={setLines}
             onPosesChanged={setPoses}
             onEditLine={(line) => setLineTarget({ mode: 'edit', line })}
-            onCreatePose={() => setPoseTarget('new')}
+            onCreatePose={openNewPose}
             onLineStatus={changeLineStatus}
           />
         ) : view === 'cards' ? (
@@ -256,7 +263,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
           <PosesView
             poses={poses}
             derived={derived}
-            onCreate={() => setPoseTarget('new')}
+            onCreate={() => openNewPose()}
             onEdit={setPoseTarget}
             onStatus={changePoseStatus}
             onNavigate={setView}
@@ -285,6 +292,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
       {poseTarget && (
         <PoseEditor
           pose={poseTarget === 'new' ? null : poseTarget}
+          preset={poseTarget === 'new' ? posePreset : null}
           linkedLines={poseTarget === 'new' ? [] : derived.linesByPose.get(poseTarget.id) ?? []}
           situationByKey={derived.situationByKey}
           legacyPaths={derived.legacyPaths}

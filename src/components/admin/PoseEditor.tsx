@@ -15,6 +15,7 @@ import {
   type Line,
   type Pose,
   type PoseMetaInput,
+  type PosePreset,
   type Situation,
 } from '@/lib/admin/types';
 import {
@@ -32,6 +33,8 @@ import {
 interface PoseEditorProps {
   /** null = 새 포즈 업로드 */
   pose: Pose | null;
+  /** 새 포즈일 때 미리 채울 값 (선택한 멘트의 추천 이름·프롬프트) */
+  preset?: PosePreset | null;
   linkedLines: Line[];
   situationByKey: Map<string, Situation>;
   /** 기존 앱이 쓰는 이미지 경로: 포즈를 지워도 파일은 남김 */
@@ -45,6 +48,7 @@ const POSE_KEY_PATTERN = /^[a-z0-9_]+$/;
 
 export default function PoseEditor({
   pose,
+  preset,
   linkedLines,
   situationByKey,
   legacyPaths,
@@ -57,11 +61,11 @@ export default function PoseEditor({
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [poseKey, setPoseKey] = useState(pose?.pose_key ?? '');
+  const [poseKey, setPoseKey] = useState(pose?.pose_key ?? preset?.poseKey ?? '');
   const [tags, setTags] = useState(pose?.tags.join(', ') ?? '');
   const [description, setDescription] = useState(pose?.description ?? '');
-  const [aiPrompt, setAiPrompt] = useState(pose?.ai_prompt ?? '');
-  const [aiModel, setAiModel] = useState(pose?.ai_model ?? '');
+  const [aiPrompt, setAiPrompt] = useState(pose?.ai_prompt ?? preset?.aiPrompt ?? '');
+  const [aiModel, setAiModel] = useState(pose?.ai_model ?? preset?.aiModel ?? '');
   const [aiMeta, setAiMeta] = useState(
     pose && Object.keys(pose.ai_meta).length ? JSON.stringify(pose.ai_meta, null, 2) : ''
   );
@@ -190,7 +194,14 @@ export default function PoseEditor({
         </div>
 
         <div className="space-y-4">
-          <Field label="포즈 이름" hint="영문 소문자·숫자·_ (예: facepalm_01)">
+          <Field
+            label="포즈 이름"
+            hint={
+              isNew && preset?.poseKey
+                ? '선택한 멘트의 추천 이름 · 파일 이름과 상관없이 이 이름으로 저장'
+                : '영문 소문자·숫자·_ (예: facepalm_01)'
+            }
+          >
             <input
               value={poseKey}
               onChange={(e) => setPoseKey(e.target.value)}

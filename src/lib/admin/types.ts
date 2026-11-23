@@ -49,6 +49,8 @@ export interface Line {
   prompt_requested: boolean;
   /** ChatGPT 이미지 생성용 프롬프트 */
   image_prompt: string | null;
+  /** Claude가 정한 포즈 이름: 이미지 올릴 때 포즈 이름 기본값 */
+  suggested_pose_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -113,3 +115,10 @@ export const SAMPLE_VARS: Record<string, string> = {
   amount: '38,000원',
   category: '배달음식',
 };
+
+/** 카드 만들기에서 멘트를 고른 채 이미지를 올릴 때 미리 채우는 값 */
+export interface PosePreset {
+  poseKey?: string;
+  aiPrompt?: string;
+  aiModel?: string;
+}

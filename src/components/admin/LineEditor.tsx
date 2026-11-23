@@ -291,7 +291,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
           </Field>
 
           {target.mode === 'edit' && target.line.image_prompt && (
-            <PromptBox prompt={target.line.image_prompt} />
+            <PromptBox prompt={target.line.image_prompt} poseKey={target.line.suggested_pose_key} />
           )}
 
           {error && <p className="rounded-lg bg-alarm-pale p-3 text-sm text-alarm">{error}</p>}
@@ -328,7 +328,7 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
 }
 
 /** Claude가 쓴 이미지 프롬프트: 전체를 그대로 ChatGPT에 붙여넣는 용도 */
-function PromptBox({ prompt }: { prompt: string }) {
+function PromptBox({ prompt, poseKey }: { prompt: string; poseKey: string | null }) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const copy = async () => {
@@ -376,6 +376,11 @@ function PromptBox({ prompt }: { prompt: string }) {
         aria-label="AI 이미지 프롬프트"
         className={`${inputClass} mt-1 resize-y text-xs leading-relaxed`}
       />
+      {poseKey && (
+        <p className="mt-1 text-xs text-ink-muted">
+          포즈 이름 <span className="font-mono text-ink">{poseKey}</span> · 카드 만들기에서 이 멘트를 고르고 이미지를 올리면 자동으로 채워져요
+        </p>
+      )}
     </div>
   );
 }
