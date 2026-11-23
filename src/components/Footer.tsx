@@ -1,6 +1,17 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+const BUSINESS_INFO: { label: string; value: string; href?: string }[] = [
+  { label: '상호', value: '82스튜디오' },
+  { label: '주소', value: '서울 서초구 강남대로83길' },
+  { label: '대표자', value: '박건우' },
+  { label: '사업자등록번호', value: '629-24-02028' },
+  { label: '통신판매신고번호', value: '2025-서울서초-3296' },
+  { label: '개인정보관리책임자', value: '박건우' },
+  { label: '고객센터', value: '82studio.xyz@gmail.com', href: 'mailto:82studio.xyz@gmail.com' },
+  { label: '전화', value: '010-9474-3580', href: 'tel:010-9474-3580' },
+];
+
 export default function Footer() {
   return (
     <footer className="bg-gray-950 text-gray-400 pb-[calc(5rem+env(safe-area-inset-bottom))]">
@@ -22,30 +33,29 @@ export default function Footer() {
               당신의 통장을 지키는 가장 확실한 훈련
             </p>
           </div>
-
-          {/* Contact Info */}
-          <div className="text-right">
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="text-gray-500">대표</span>{' '}
-                <span className="text-gray-300">박건우 유다연</span>
-              </p>
-              <p>
-                <span className="text-gray-500">이메일</span>{' '}
-                <a
-                  href="mailto:ceo@82studio.xyz"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  ceo@82studio.xyz
-                </a>
-              </p>
-            </div>
-          </div>
         </div>
+
+        {/* 사업자 정보 */}
+        <dl className="mt-8 flex flex-wrap gap-x-4 gap-y-1.5 text-xs leading-relaxed break-keep">
+          {BUSINESS_INFO.map(({ label, value, href }) => (
+            <div key={label} className="flex gap-1.5">
+              <dt className="text-gray-500">{label}</dt>
+              <dd className="text-gray-300">
+                {href ? (
+                  <a href={href} className="hover:text-white transition-colors">
+                    {value}
+                  </a>
+                ) : (
+                  value
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
 
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-gray-500">
-            &copy; 2025 지갑교관. All rights reserved.
+            Copyright &copy; 2026 82STUDIO
           </p>
           <div className="flex gap-6 text-sm">
             <Link href="#features" className="hover:text-white transition-colors">
