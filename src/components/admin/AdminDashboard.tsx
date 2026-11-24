@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchAll, fetchLegacy, setLineStatus, setPoseStatus } from '@/lib/admin/api';
+import { fetchAll, fetchLegacy, fetchSuggestions, setLineStatus, setPoseStatus } from '@/lib/admin/api';
 import {
   isLive,
   toCardSituationKey,
@@ -9,6 +9,7 @@ import {
   type LegacyAsset,
   type LegacyMessage,
   type Line,
+  type LineSuggestion,
   type Pose,
   type PosePreset,
   type Situation,
@@ -20,8 +21,9 @@ import PosesView from './PosesView';
 import LegacyView from './LegacyView';
 import LineEditor, { type LineEditorTarget } from './LineEditor';
 import PoseEditor from './PoseEditor';
+import SuggestionsView from './SuggestionsView';
 
-export type View = 'overview' | 'compose' | 'cards' | 'poses' | 'legacy';
+export type View = 'overview' | 'compose' | 'cards' | 'poses' | 'suggestions' | 'legacy';
 
 /** 여러 화면에서 같이 쓰는 계산 결과 */
 export interface Derived {
@@ -53,6 +55,7 @@ const NAV: { key: View; label: string }[] = [
   { key: 'compose', label: '카드 만들기' },
   { key: 'cards', label: '카드 목록' },
   { key: 'poses', label: '포즈 이미지' },
+  { key: 'suggestions', label: '추천 멘트' },
   { key: 'legacy', label: '현재 앱 콘텐츠' },
 ];
 
@@ -65,6 +68,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
   const [lines, setLines] = useState<Line[]>([]);
   const [legacyAssets, setLegacyAssets] = useState<LegacyAsset[]>([]);
   const [legacyMessages, setLegacyMessages] = useState<LegacyMessage[]>([]);
+  const [suggestions, setSuggestions] = useState<LineSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,7 +83,16 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
 
   const reload = useCallback(async () => {
     try {
-      const [data, legacy] = await Promise.all([fetchAll(), fetchLegacy()]);
+      const [data, legacy, suggestionRows] = await Promise.all([
+        fetchAll(),
+        fetchLegacy(),
+        // 추천 테이블 SQL을 실행하기 전이어도 나머지 화면은 동작하게
+        fetchSuggestions().catch((e) => {
+          console.warn('[admin] 추천 멘트 조회 실패', e);
+          return [] as LineSuggestion[];
+        }),
+      ]);
+      setSuggestions(suggestionRows);
       setSituations(data.situations);
       setPoses(data.poses);
       setLines(data.lines);
@@ -160,6 +173,8 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
     }
   }, []);
 
+  const pendingSuggestions = suggestions.filter((s) => s.status === 'pending').length;
+
   const openSituation = (key: string | 'all') => {
     setCardsSituation(key);
     setView('cards');
@@ -200,6 +215,11 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
               }`}
             >
               {item.label}
+              {item.key === 'suggestions' && pendingSuggestions > 0 && (
+                <span className="ml-1.5 rounded-full bg-mint px-1.5 py-0.5 text-[10px] font-bold text-ink tabular-nums">
+                  {pendingSuggestions}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -258,6 +278,25 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
             onEdit={(line) => setLineTarget({ mode: 'edit', line })}
             onStatus={changeLineStatus}
             onCompose={() => setView('compose')}
+          />
+        ) : view === 'suggestions' ? (
+          <SuggestionsView
+            suggestions={suggestions}
+            lines={lines}
+            derived={derived}
+            onAdopt={(suggestion, situationKey) =>
+              setLineTarget({
+                mode: 'new',
+                suggestion,
+                preset: {
+                  line_text: suggestion.line_text,
+                  ...(situationKey ? { situation_key: situationKey } : {}),
+                  note: `사용자 추천 · ${suggestion.nickname_at_submit ?? '알 수 없음'}`,
+                },
+              })
+            }
+            onEditLine={(line) => setLineTarget({ mode: 'edit', line })}
+            onChanged={(next) => setSuggestions((prev) => prev.map((s) => (s.id === next.id ? next : s)))}
           />
         ) : view === 'poses' ? (
           <PosesView

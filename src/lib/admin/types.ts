@@ -51,6 +51,8 @@ export interface Line {
   image_prompt: string | null;
   /** Claude가 정한 포즈 이름: 이미지 올릴 때 포즈 이름 기본값 */
   suggested_pose_key: string | null;
+  /** 사용자 추천에서 채택된 멘트면 그 추천 id (앱에서 추천자 닉네임 표시) */
+  suggestion_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -121,4 +123,54 @@ export interface PosePreset {
   poseKey?: string;
   aiPrompt?: string;
   aiModel?: string;
+}
+
+// ---------- 사용자 멘트 추천 ----------
+
+export type SuggestionStatus = 'pending' | 'adopted' | 'rejected';
+export type SuggestionHint = 'saved' | 'close' | 'over' | 'no_record' | 'unknown';
+
+export const SUGGESTION_STATUS_LABEL: Record<SuggestionStatus, string> = {
+  pending: '검토 대기',
+  adopted: '채택',
+  rejected: '반려',
+};
+
+/** 마이페이지에서 사용자가 고른 쉬운 상황 */
+export const SUGGESTION_HINT_LABEL: Record<SuggestionHint, string> = {
+  saved: '돈 아꼈을 때',
+  close: '아슬아슬할 때',
+  over: '많이 썼을 때',
+  no_record: '기록 안 했을 때',
+  unknown: '잘 모르겠음',
+};
+
+/** 사용자가 고른 상황 → 채택할 때 기본으로 고를 카드 상황 (관리자가 바꿀 수 있음) */
+export const SUGGESTION_HINT_DEFAULT_SITUATION: Record<SuggestionHint, string | null> = {
+  saved: 'input.under',
+  close: 'input.close',
+  over: 'input.over',
+  no_record: 'home.zero',
+  unknown: null,
+};
+
+export interface LineSuggestion {
+  id: string;
+  user_id: string;
+  line_text: string;
+  /** 말풍선 아래에서 추천: 그 화면의 상황 */
+  situation_key: string | null;
+  /** 마이페이지에서 추천: 사용자가 고른 상황 */
+  situation_hint: SuggestionHint | null;
+  source: 'dialogue' | 'mypage';
+  /** 추천할 때 보고 있던 교관 멘트 */
+  shown_line_text: string | null;
+  /** 채택되면 앱에서 닉네임 표시 동의 */
+  show_credit: boolean;
+  nickname_at_submit: string | null;
+  status: SuggestionStatus;
+  adopted_line_id: string | null;
+  reviewed_at: string | null;
+  notified_at: string | null;
+  created_at: string;
 }

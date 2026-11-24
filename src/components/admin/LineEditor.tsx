@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { assetUrl, createLine, deleteLine, updateLine } from '@/lib/admin/api';
+import { assetUrl, createLine, deleteLine, markSuggestionAdopted, updateLine } from '@/lib/admin/api';
 import {
   LOCALES,
   STATUS_LABEL,
   type ContentStatus,
   type Line,
   type LineInput,
+  type LineSuggestion,
   type Pose,
   type Situation,
 } from '@/lib/admin/types';
@@ -23,7 +24,7 @@ import {
 } from './ui';
 
 export type LineEditorTarget =
-  | { mode: 'new'; preset: Partial<LineInput> }
+  | { mode: 'new'; preset: Partial<LineInput>; suggestion?: LineSuggestion }
   | { mode: 'edit'; line: Line };
 
 interface LineEditorProps {
@@ -52,11 +53,12 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
           pose_id: target.preset.pose_id ?? null,
           situation_key: target.preset.situation_key ?? situations[0]?.key ?? '',
           locale: target.preset.locale ?? 'ko',
-          line_text: '',
+          line_text: target.preset.line_text ?? '',
           weight: 10,
           status: 'draft',
-          note: null,
+          note: target.preset.note ?? null,
         };
+  const suggestion = target.mode === 'new' ? target.suggestion : undefined;
 
   const [form, setForm] = useState<LineInput>(initial);
   const [saving, setSaving] = useState(false);
@@ -126,8 +128,12 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
       note: form.note?.trim() || null,
     };
     try {
-      if (target.mode === 'edit') await updateLine(target.line.id, payload);
-      else await createLine(payload);
+      if (target.mode === 'edit') {
+        await updateLine(target.line.id, payload);
+      } else {
+        const created = await createLine(payload, suggestion?.id);
+        if (suggestion) await markSuggestionAdopted(suggestion.id, created.id);
+      }
       await onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -149,9 +155,27 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
   };
 
   return (
-    <Modal title={target.mode === 'edit' ? '멘트 수정' : '멘트 추가'} onClose={onClose} wide>
+    <Modal
+      title={target.mode === 'edit' ? '멘트 수정' : suggestion ? '추천 멘트 채택' : '멘트 추가'}
+      onClose={onClose}
+      wide
+    >
       <div className="grid gap-6 md:grid-cols-[1fr_240px]">
         <div className="space-y-4">
+          {suggestion && (
+            <div className="rounded-xl bg-mint-pale px-4 py-3 text-sm">
+              <p className="font-semibold text-ink">
+                {suggestion.nickname_at_submit ?? '알 수 없음'}님의 추천
+                <span className="ml-2 text-xs font-normal text-ink-soft">
+                  {suggestion.show_credit ? '앱에 닉네임 표시' : '닉네임 표시 안 함'}
+                </span>
+              </p>
+              <p className="mt-1 text-ink-soft">원문: “{suggestion.line_text}”</p>
+              <p className="mt-1 text-xs text-ink-muted">
+                다듬어서 저장하면 채택 처리돼요. 이미지까지 묶어 공개한 뒤 추천 멘트 탭에서 채택 알림을 보내세요.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-[1fr_auto] gap-3">
             <Field label="상황">
               <select

@@ -5,6 +5,7 @@ import type {
   LegacyMessage,
   Line,
   LineInput,
+  LineSuggestion,
   Pose,
   PoseMetaInput,
   Situation,
@@ -87,8 +88,13 @@ export async function setPoseStatus(id: string, status: ContentStatus): Promise<
 
 // ---------- 멘트 ----------
 
-export async function createLine(input: LineInput): Promise<Line> {
-  const { data, error } = await getSupabase().from('character_lines').insert(input).select().single();
+/** suggestionId: 사용자 추천을 다듬어 채택하는 경우 (앱에서 추천자 닉네임 표시) */
+export async function createLine(input: LineInput, suggestionId?: string): Promise<Line> {
+  const { data, error } = await getSupabase()
+    .from('character_lines')
+    .insert({ ...input, suggestion_id: suggestionId ?? null })
+    .select()
+    .single();
   if (error || !data) fail('멘트 저장 실패', error);
   return data;
 }
@@ -226,4 +232,51 @@ export async function deletePose(
 
   const removed = await getSupabase().storage.from(BUCKET).remove([pose.storage_path]);
   return { file: !removed.error && (removed.data?.length ?? 0) > 0 ? 'removed' : 'remove_failed' };
+}
+
+// ---------- 사용자 멘트 추천 ----------
+
+export async function fetchSuggestions(): Promise<LineSuggestion[]> {
+  const { data, error } = await getSupabase()
+    .from('line_suggestions')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) fail('추천 멘트 조회 실패', error);
+  return data;
+}
+
+/** 추천을 다듬어 만든 멘트와 연결하고 채택 처리 */
+export async function markSuggestionAdopted(id: string, lineId: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from('line_suggestions')
+    .update({ status: 'adopted', adopted_line_id: lineId, reviewed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) fail('채택 처리 실패', error);
+}
+
+/** 반려 또는 검토 대기로 되돌리기 */
+export async function setSuggestionStatus(id: string, status: 'pending' | 'rejected'): Promise<void> {
+  const { error } = await getSupabase()
+    .from('line_suggestions')
+    .update({ status, reviewed_at: status === 'pending' ? null : new Date().toISOString() })
+    .eq('id', id);
+  if (error) fail('추천 상태 변경 실패', error);
+}
+
+/**
+ * 채택 알림 푸시 (Edge Function notify-suggestion-adopted)
+ * @returns 'sent' | 'notification_disabled' (사용자가 알림을 꺼둠)
+ */
+export async function notifySuggestionAdopted(id: string): Promise<'sent' | 'notification_disabled'> {
+  const { data, error } = await getSupabase().functions.invoke('notify-suggestion-adopted', {
+    body: { suggestion_id: id },
+  });
+  if (error) {
+    // 함수가 돌려준 오류 문구가 있으면 그걸 보여줌
+    const context = (error as { context?: Response }).context;
+    const body = context ? await context.json().catch(() => null) : null;
+    throw new Error(`채택 알림 실패: ${body?.error ?? error.message}`);
+  }
+  return data?.skipped === 'notification_disabled' ? 'notification_disabled' : 'sent';
 }
