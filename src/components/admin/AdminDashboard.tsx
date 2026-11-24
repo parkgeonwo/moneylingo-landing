@@ -155,14 +155,27 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
   }, [poses, situations, lines, legacyMessages, legacyAssets]);
 
   /** 목록에서 바로 상태 변경 후 해당 행만 갱신 (전체 재조회 없이) */
-  const changeLineStatus = useCallback(async (id: string, status: ContentStatus) => {
-    try {
-      await setLineStatus(id, status);
-      setLines((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }, []);
+  /**
+   * 멘트를 공개하면 묶인 이미지도 같이 공개 (카드 = 멘트 + 이미지 세트)
+   * 내릴 때는 이미지를 그대로 둠: 같은 이미지를 다른 멘트가 쓰고 있을 수 있음
+   */
+  const changeLineStatus = useCallback(
+    async (id: string, status: ContentStatus) => {
+      try {
+        const line = lines.find((l) => l.id === id);
+        const pose = line?.pose_id ? poses.find((p) => p.id === line.pose_id) : undefined;
+        if (status === 'active' && pose && pose.status !== 'active') {
+          await setPoseStatus(pose.id, 'active');
+          setPoses((prev) => prev.map((p) => (p.id === pose.id ? { ...p, status: 'active' } : p)));
+        }
+        await setLineStatus(id, status);
+        setLines((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [lines, poses]
+  );
 
   const changePoseStatus = useCallback(async (id: string, status: ContentStatus) => {
     try {

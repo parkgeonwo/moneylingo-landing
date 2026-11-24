@@ -78,7 +78,7 @@ export default function CardsView({
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">카드 목록</h1>
-          <p className="mt-1 text-sm text-ink-soft">이미지와 묶인 멘트만 보여요. 공개로 바꾸면 앱에 나가요.</p>
+          <p className="mt-1 text-sm text-ink-soft">이미지와 묶인 멘트만 보여요. 공개로 바꾸면 묶인 이미지도 함께 공개되고 앱에 나가요.</p>
         </div>
         <button onClick={onCompose} className={primaryButton}>
           카드 만들기

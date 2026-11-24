@@ -1,7 +1,14 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { assetUrl, createLine, deleteLine, markSuggestionAdopted, updateLine } from '@/lib/admin/api';
+import {
+  assetUrl,
+  createLine,
+  deleteLine,
+  markSuggestionAdopted,
+  setPoseStatus,
+  updateLine,
+} from '@/lib/admin/api';
 import {
   LOCALES,
   STATUS_LABEL,
@@ -128,6 +135,11 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
       note: form.note?.trim() || null,
     };
     try {
+      // 멘트를 공개하면 묶인 이미지도 같이 공개 (카드 = 멘트 + 이미지 세트)
+      const poseToPublish = !textOnly && payload.status === 'active' ? selectedPose : undefined;
+      if (poseToPublish && poseToPublish.status !== 'active') {
+        await setPoseStatus(poseToPublish.id, 'active');
+      }
       if (target.mode === 'edit') {
         await updateLine(target.line.id, payload);
       } else {
@@ -301,8 +313,8 @@ export default function LineEditor({ target, situations, poses, onClose, onSaved
             <p className="text-sm text-alarm">이미지가 없는 멘트는 공개할 수 없어요. 포즈를 고르거나 초안으로 두세요.</p>
           )}
           {form.status === 'active' && selectedPose && selectedPose.status !== 'active' && (
-            <p className="text-sm text-caution">
-              선택한 포즈가 &quot;{STATUS_LABEL[selectedPose.status]}&quot; 상태라 포즈를 공개하기 전까지 앱에 나오지 않습니다.
+            <p className="text-sm text-ink-soft">
+              저장하면 이미지 &quot;{selectedPose.pose_key}&quot;도 함께 공개돼요.
             </p>
           )}
 
