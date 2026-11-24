@@ -174,3 +174,28 @@ export interface LineSuggestion {
   notified_at: string | null;
   created_at: string;
 }
+
+// ---------- 고객 문의 (앱 "의견 남기기") ----------
+
+export type FeedbackStatus = 'new' | 'checked' | 'done' | 'wont_fix';
+
+export const FEEDBACK_STATUS_LABEL: Record<FeedbackStatus, string> = {
+  new: '새 문의',
+  checked: '확인함',
+  done: '반영 완료',
+  wont_fix: '반영 안 함',
+};
+
+export interface UserFeedback {
+  id: string;
+  user_id: string;
+  content: string;
+  status: FeedbackStatus;
+  admin_note: string | null;
+  resolved_at: string | null;
+  nickname_at_submit: string | null;
+  /** 앱 1.2.1부터 채워짐 */
+  app_version: string | null;
+  platform: 'ios' | 'android' | null;
+  created_at: string;
+}

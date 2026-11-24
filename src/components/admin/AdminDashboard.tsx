@@ -1,7 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchAll, fetchLegacy, fetchSuggestions, setLineStatus, setPoseStatus } from '@/lib/admin/api';
+import {
+  fetchAll,
+  fetchFeedbacks,
+  fetchLegacy,
+  fetchSuggestions,
+  setLineStatus,
+  setPoseStatus,
+} from '@/lib/admin/api';
 import {
   isLive,
   toCardSituationKey,
@@ -10,6 +17,7 @@ import {
   type LegacyMessage,
   type Line,
   type LineSuggestion,
+  type UserFeedback,
   type Pose,
   type PosePreset,
   type Situation,
@@ -22,8 +30,9 @@ import LegacyView from './LegacyView';
 import LineEditor, { type LineEditorTarget } from './LineEditor';
 import PoseEditor from './PoseEditor';
 import SuggestionsView from './SuggestionsView';
+import FeedbackView from './FeedbackView';
 
-export type View = 'overview' | 'compose' | 'cards' | 'poses' | 'suggestions' | 'legacy';
+export type View = 'overview' | 'compose' | 'cards' | 'poses' | 'suggestions' | 'feedback' | 'legacy';
 
 /** 여러 화면에서 같이 쓰는 계산 결과 */
 export interface Derived {
@@ -56,6 +65,7 @@ const NAV: { key: View; label: string }[] = [
   { key: 'cards', label: '카드 목록' },
   { key: 'poses', label: '포즈 이미지' },
   { key: 'suggestions', label: '추천 멘트' },
+  { key: 'feedback', label: '고객 문의' },
   { key: 'legacy', label: '현재 앱 콘텐츠' },
 ];
 
@@ -69,6 +79,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
   const [legacyAssets, setLegacyAssets] = useState<LegacyAsset[]>([]);
   const [legacyMessages, setLegacyMessages] = useState<LegacyMessage[]>([]);
   const [suggestions, setSuggestions] = useState<LineSuggestion[]>([]);
+  const [feedbacks, setFeedbacks] = useState<UserFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,7 +94,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
 
   const reload = useCallback(async () => {
     try {
-      const [data, legacy, suggestionRows] = await Promise.all([
+      const [data, legacy, suggestionRows, feedbackRows] = await Promise.all([
         fetchAll(),
         fetchLegacy(),
         // 추천 테이블 SQL을 실행하기 전이어도 나머지 화면은 동작하게
@@ -91,8 +102,14 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
           console.warn('[admin] 추천 멘트 조회 실패', e);
           return [] as LineSuggestion[];
         }),
+        // 고객 문의 관리 SQL을 실행하기 전이어도 나머지 화면은 동작하게
+        fetchFeedbacks().catch((e) => {
+          console.warn('[admin] 고객 문의 조회 실패', e);
+          return [] as UserFeedback[];
+        }),
       ]);
       setSuggestions(suggestionRows);
+      setFeedbacks(feedbackRows);
       setSituations(data.situations);
       setPoses(data.poses);
       setLines(data.lines);
@@ -187,6 +204,7 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
   }, []);
 
   const pendingSuggestions = suggestions.filter((s) => s.status === 'pending').length;
+  const newFeedbacks = feedbacks.filter((f) => f.status === 'new').length;
 
   const openSituation = (key: string | 'all') => {
     setCardsSituation(key);
@@ -231,6 +249,11 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
               {item.key === 'suggestions' && pendingSuggestions > 0 && (
                 <span className="ml-1.5 rounded-full bg-mint px-1.5 py-0.5 text-[10px] font-bold text-ink tabular-nums">
                   {pendingSuggestions}
+                </span>
+              )}
+              {item.key === 'feedback' && newFeedbacks > 0 && (
+                <span className="ml-1.5 rounded-full bg-alarm px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                  {newFeedbacks}
                 </span>
               )}
             </button>
@@ -310,6 +333,11 @@ export default function AdminDashboard({ onSignOut }: { onSignOut: () => Promise
             }
             onEditLine={(line) => setLineTarget({ mode: 'edit', line })}
             onChanged={(next) => setSuggestions((prev) => prev.map((s) => (s.id === next.id ? next : s)))}
+          />
+        ) : view === 'feedback' ? (
+          <FeedbackView
+            feedbacks={feedbacks}
+            onChanged={(next) => setFeedbacks((prev) => prev.map((f) => (f.id === next.id ? next : f)))}
           />
         ) : view === 'poses' ? (
           <PosesView

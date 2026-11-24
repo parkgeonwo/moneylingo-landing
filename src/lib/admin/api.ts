@@ -6,6 +6,8 @@ import type {
   Line,
   LineInput,
   LineSuggestion,
+  FeedbackStatus,
+  UserFeedback,
   Pose,
   PoseMetaInput,
   Situation,
@@ -279,4 +281,31 @@ export async function notifySuggestionAdopted(id: string): Promise<'sent' | 'not
     throw new Error(`채택 알림 실패: ${body?.error ?? error.message}`);
   }
   return data?.skipped === 'notification_disabled' ? 'notification_disabled' : 'sent';
+}
+
+// ---------- 고객 문의 ----------
+
+export async function fetchFeedbacks(): Promise<UserFeedback[]> {
+  const { data, error } = await getSupabase()
+    .from('user_feedbacks')
+    .select('id, user_id, content, status, admin_note, resolved_at, nickname_at_submit, app_version, platform, created_at')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) fail('고객 문의 조회 실패', error);
+  return data;
+}
+
+/** 처리 상태·메모 저장. 반영 완료/반영 안 함이면 처리 시각 기록 */
+export async function updateFeedback(
+  id: string,
+  patch: { status: FeedbackStatus; admin_note: string | null }
+): Promise<{ resolved_at: string | null }> {
+  const resolved_at =
+    patch.status === 'done' || patch.status === 'wont_fix' ? new Date().toISOString() : null;
+  const { error } = await getSupabase()
+    .from('user_feedbacks')
+    .update({ ...patch, resolved_at })
+    .eq('id', id);
+  if (error) fail('고객 문의 저장 실패', error);
+  return { resolved_at };
 }
