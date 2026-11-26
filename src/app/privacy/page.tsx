@@ -240,6 +240,71 @@ export default function PrivacyPage() {
 
           <hr className="my-8" />
 
+          <h2 className="text-2xl font-bold text-gray-900 mt-12 mb-6">5-1. 개인정보의 국외 이전</h2>
+
+          <p className="text-gray-600 mb-4">
+            회사는 서비스 제공을 위해 「개인정보 보호법」 제28조의8에 따라 아래와 같이 개인정보를 국외로 이전(처리 위탁·보관)합니다.
+          </p>
+
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full border-collapse border border-gray-200 text-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="border border-gray-200 px-4 py-2 text-left">이전받는 자 (연락처)</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left">이전 국가</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left">이전 항목</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left">이전 목적</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">Supabase, Inc. (supabase.com)</td>
+                  <td className="border border-gray-200 px-4 py-2">미국 (데이터 저장 위치: 대한민국 서울)</td>
+                  <td className="border border-gray-200 px-4 py-2">계정 정보, 프로필, 예산·지출 기록, 서비스 이용 기록</td>
+                  <td className="border border-gray-200 px-4 py-2">데이터 저장 및 로그인 인증</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">Google LLC (google.com)</td>
+                  <td className="border border-gray-200 px-4 py-2">미국</td>
+                  <td className="border border-gray-200 px-4 py-2">Google 계정 식별자·이메일, 광고 식별자, 기기 정보, 푸시 토큰</td>
+                  <td className="border border-gray-200 px-4 py-2">Google 로그인, 광고 제공, Android 알림 발송</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">Apple Inc. (apple.com)</td>
+                  <td className="border border-gray-200 px-4 py-2">미국</td>
+                  <td className="border border-gray-200 px-4 py-2">Apple 계정 식별자, 이메일</td>
+                  <td className="border border-gray-200 px-4 py-2">Apple 로그인</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">OneSignal, Inc. (onesignal.com)</td>
+                  <td className="border border-gray-200 px-4 py-2">미국</td>
+                  <td className="border border-gray-200 px-4 py-2">회원 식별자, 푸시 토큰, 기기 정보</td>
+                  <td className="border border-gray-200 px-4 py-2">푸시 알림 발송</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">Mixpanel, Inc. (mixpanel.com)</td>
+                  <td className="border border-gray-200 px-4 py-2">미국</td>
+                  <td className="border border-gray-200 px-4 py-2">서비스 이용 기록, 기기 정보</td>
+                  <td className="border border-gray-200 px-4 py-2">서비스 이용 분석</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">Slack Technologies, LLC (slack.com)</td>
+                  <td className="border border-gray-200 px-4 py-2">미국</td>
+                  <td className="border border-gray-200 px-4 py-2">닉네임, 문의·의견 내용</td>
+                  <td className="border border-gray-200 px-4 py-2">운영자 알림</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <ul className="list-disc pl-6 mb-4 text-gray-600">
+            <li>이전 일시 및 방법: 서비스 이용 시점에 네트워크를 통해 암호화하여 전송</li>
+            <li>보유 및 이용 기간: 회원 탈퇴 시 또는 위탁 계약 종료 시까지 (관련 법령에 따라 보존이 필요한 경우 해당 기간까지)</li>
+            <li>거부 방법 및 효과: 국외 이전을 원하지 않으시면 회원 탈퇴 또는 개인정보 보호책임자에게 요청하여 거부할 수 있습니다. 다만, 위 이전은 서비스 제공에 필수적이므로 거부 시 서비스 이용이 제한됩니다.</li>
+          </ul>
+
+          <hr className="my-8" />
+
           <h2 className="text-2xl font-bold text-gray-900 mt-12 mb-6">6. 마케팅 정보 수신</h2>
 
           <p className="text-gray-600 mb-6">
@@ -346,7 +411,7 @@ export default function PrivacyPage() {
 
           <p className="font-semibold text-gray-800 mb-2">기타 문의</p>
           <ul className="list-disc pl-6 mb-8 text-gray-600">
-            <li>앱 이용이 어려운 경우 ceo@82studio.xyz로 탈퇴를 요청할 수 있습니다.</li>
+            <li>앱 이용이 어려운 경우 82studio.xyz@gmail.com로 탈퇴를 요청할 수 있습니다.</li>
           </ul>
 
           <hr className="my-8" />
@@ -375,7 +440,7 @@ export default function PrivacyPage() {
             <p className="font-semibold text-gray-800 mb-2">개인정보 보호책임자</p>
             <ul className="text-gray-600">
               <li>담당자: 박건우</li>
-              <li>이메일: ceo@82studio.xyz</li>
+              <li>이메일: 82studio.xyz@gmail.com</li>
             </ul>
           </div>
 

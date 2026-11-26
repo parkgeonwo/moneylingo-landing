@@ -3,7 +3,7 @@ import Image from 'next/image';
 
 const BUSINESS_INFO: { label: string; value: string; href?: string }[] = [
   { label: '상호', value: '82스튜디오' },
-  { label: '주소', value: '서울 서초구 강남대로83길' },
+  { label: '주소', value: '서울 서초구 강남대로83길 (반포동 732-18)' },
   { label: '대표자', value: '박건우' },
   { label: '사업자등록번호', value: '629-24-02028' },
   { label: '통신판매신고번호', value: '2025-서울서초-3296' },

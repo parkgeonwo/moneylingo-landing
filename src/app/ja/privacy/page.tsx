@@ -26,9 +26,9 @@ export default function JaPrivacyPage() {
         head={['項目', '内容']}
         rows={[
           ['名称', '82スタジオ（82studio）'],
-          ['住所', '大韓民国 ソウル特別市 瑞草区 盤浦洞 732-18'],
-          ['代表者', 'Park Geonwoo（パク・ゴンウ）'],
-          ['個人情報保護管理者', 'Park Geonwoo（パク・ゴンウ）'],
+          ['住所', '大韓民国 ソウル特別市 瑞草区 江南大路83ギル（盤浦洞 732-18）'],
+          ['代表者', 'Park Geonwoo（박건우）'],
+          ['個人情報保護管理者', 'Park Geonwoo（박건우）'],
           ['お問い合わせ', <a key="mail" href={`mailto:${CONTACT_EMAIL}`} className="underline">{CONTACT_EMAIL}</a>],
         ]}
       />
