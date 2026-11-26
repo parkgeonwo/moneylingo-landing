@@ -41,7 +41,7 @@ export default function PrivacyPage() {
           </h1>
 
           <p className="text-lg text-gray-700 mb-8">
-            <strong>시행일: 2025년 12월 10일</strong>
+            <strong>시행일: 2026년 11월 26일</strong> (이전 버전: 2025년 12월 10일)
           </p>
 
           <p className="text-gray-600 mb-8">
@@ -58,16 +58,21 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-6 mb-4 text-gray-600">
             <li>Apple 로그인: Apple 계정 식별자, 이메일(사용자 선택에 따라 실제 이메일 또는 Private Relay 주소)</li>
             <li>카카오 로그인: 카카오 계정 식별자, 이메일, 프로필 정보</li>
+            <li>Google 로그인: Google 계정 식별자, 이메일, 이름, 프로필 사진</li>
           </ul>
 
           <p className="font-semibold text-gray-800 mb-2">서비스 이용 정보</p>
           <ul className="list-disc pl-6 mb-4 text-gray-600">
-            <li>닉네임, 월 예산 설정 금액</li>
+            <li>닉네임, 생년월일, 성별</li>
+            <li>월 예산 금액, 예산 시작일, 통화, 지출 기록(금액, 분류, 메모, 날짜)</li>
+            <li>문의·의견 내용, 교관 멘트 추천 내용(추천 시 닉네임 및 이름 표시 여부 포함)</li>
           </ul>
 
           <p className="font-semibold text-gray-800 mb-2">자동 수집 정보</p>
           <ul className="list-disc pl-6 mb-4 text-gray-600">
             <li>기기 정보(OS 버전, 기기 모델명), 광고 ID(ADID/IDFA), 앱 버전, 접속 로그, 서비스 이용 기록</li>
+            <li>기기의 시간대 및 언어 설정 (날짜 변경·알림 시각 계산, 화면 언어 표시에 사용)</li>
+            <li>푸시 알림 토큰</li>
           </ul>
 
           <h3 className="text-xl font-semibold text-gray-900 mt-8 mb-4">선택 수집 항목</h3>
@@ -207,7 +212,7 @@ export default function PrivacyPage() {
               <tbody>
                 <tr>
                   <td className="border border-gray-200 px-4 py-2">Supabase Inc.</td>
-                  <td className="border border-gray-200 px-4 py-2">데이터 저장 및 인증</td>
+                  <td className="border border-gray-200 px-4 py-2">데이터 저장 및 인증 (서버 위치: 대한민국 서울)</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-200 px-4 py-2">Mixpanel Inc.</td>
@@ -215,7 +220,15 @@ export default function PrivacyPage() {
                 </tr>
                 <tr>
                   <td className="border border-gray-200 px-4 py-2">Google LLC</td>
-                  <td className="border border-gray-200 px-4 py-2">앱 분석, 광고 서비스</td>
+                  <td className="border border-gray-200 px-4 py-2">Google 로그인, 앱 분석, 광고 서비스, Android 알림 발송</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">OneSignal, Inc.</td>
+                  <td className="border border-gray-200 px-4 py-2">푸시 알림 발송</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-200 px-4 py-2">Slack Technologies, LLC</td>
+                  <td className="border border-gray-200 px-4 py-2">운영자 알림(신규 가입, 문의 내용 확인)</td>
                 </tr>
               </tbody>
             </table>
