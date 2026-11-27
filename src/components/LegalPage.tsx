@@ -23,16 +23,17 @@ export default function LegalPage({
   footer,
   children,
 }: LegalPageProps) {
+  const home = lang === 'ja' ? '/ja' : '/';
   return (
     <div lang={lang}>
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <nav className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={home} className="flex items-center gap-2">
               <Image src="/images/logo.png" alt={appName} width={32} height={32} className="rounded-lg" />
               <span className="font-bold text-xl text-gray-900">{appName}</span>
             </Link>
-            <Link href="/" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href={home} className="text-gray-600 hover:text-gray-900 transition-colors">
               {homeLabel}
             </Link>
           </div>

@@ -1,7 +1,4 @@
-export const APP_STORE_URL =
-  'https://apps.apple.com/kr/app/%EC%A7%80%EA%B0%91%EA%B5%90%EA%B4%80/id6756384444';
-export const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=io.github.parkgeonwo.moneylingo&pcampaignid=web_share';
+import type { LandingContent } from '@/content/landing';
 
 function AppleIcon({ className }: { className: string }) {
   return (
@@ -24,7 +21,13 @@ function PlayIcon({ className }: { className: string }) {
  * - large: 하단 CTA 섹션 (어두운 배경 위 흰 버튼)
  * - compact: 하단 고정 바 (가로 2개, 밝은 배경 위 검정 버튼)
  */
-export default function StoreButtons({ variant = 'large' }: { variant?: 'large' | 'compact' }) {
+export default function StoreButtons({
+  variant = 'large',
+  store,
+}: {
+  variant?: 'large' | 'compact';
+  store: LandingContent['store'];
+}) {
   const compact = variant === 'compact';
 
   const buttonClass = compact
@@ -36,14 +39,14 @@ export default function StoreButtons({ variant = 'large' }: { variant?: 'large' 
 
   return (
     <div className={compact ? 'flex gap-3' : 'flex flex-col justify-center gap-4 sm:flex-row'}>
-      <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className={buttonClass}>
+      <a href={store.appStore} target="_blank" rel="noopener noreferrer" className={buttonClass}>
         <AppleIcon className={iconClass} />
         <div className="text-left">
           <p className={smallTextClass}>Download on the</p>
           <p className={bigTextClass}>App Store</p>
         </div>
       </a>
-      <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className={buttonClass}>
+      <a href={store.playStore} target="_blank" rel="noopener noreferrer" className={buttonClass}>
         <PlayIcon className={iconClass} />
         <div className="text-left">
           <p className={smallTextClass}>Get it on</p>
