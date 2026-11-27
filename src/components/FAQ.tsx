@@ -1,19 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import type { LandingContent } from '@/content/landing';
 
-const faqs = [
-  {
-    question: '필수 소비는 뭔가요?',
-    answer: '월세, 통신비 등 숨만 쉬어도 나가는 고정 지출입니다. 이를 제외해야 진짜 용돈 관리가 됩니다.',
-  },
-  {
-    question: '예산을 변경할 수 있나요?',
-    answer: '네. 지정한 예산은 한 달간 유지되고, 변경한 예산은 다음 달 1일부터 적용됩니다.',
-  },
-];
-
-export default function FAQ() {
+export default function FAQ({ title, items }: LandingContent['faq']) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
@@ -22,12 +12,12 @@ export default function FAQ() {
         <div className="text-center mb-16">
           <span className="text-4xl mb-4 block">✉️</span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            자주 묻는 질문 (FAQ)
+            {title}
           </h2>
         </div>
 
         <div className="space-y-4">
-          {faqs.map((faq, index) => (
+          {items.map((faq, index) => (
             <div
               key={index}
               className="bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:border-emerald-300 shadow-sm"
