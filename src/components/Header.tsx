@@ -28,6 +28,10 @@ function LocaleToggle({ current }: { current: Locale }) {
           href={href}
           hrefLang={locale}
           aria-current={locale === current ? 'page' : undefined}
+          onClick={() => {
+            // 직접 고른 언어를 1년간 기억 → 일본어 브라우저 자동 이동(proxy.ts)보다 우선
+            document.cookie = `locale=${locale}; path=/; max-age=31536000; samesite=lax`;
+          }}
           className={`rounded-md px-2.5 py-1 transition-colors ${
             locale === current ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
           }`}
